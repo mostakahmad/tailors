@@ -21,7 +21,8 @@
   .hero-grid { padding: 42px 0 48px; }
   .hero h1 { font-size: clamp(36px, 11vw, 56px); }
   .section { padding: 56px 0; }
-  .capture-grid, .review-grid, .dash-grid, .report-meta, .diagram-stage { grid-template-columns: 1fr; }
+  .review-grid, .dash-grid, .report-meta, .diagram-stage { grid-template-columns: 1fr; }
+  .capture-grid { grid-template-columns: minmax(0, 260px); }
   .float-a, .float-b { position: static; margin-top: 8px; }
   .studio-card { margin-inline: 0; }
   .hero-figures figure { min-height: 210px; }

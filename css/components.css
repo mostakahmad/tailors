@@ -24,13 +24,25 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .shape-torso { width: calc(78px * var(--bulk, 1)); height: 120px; border-radius: 40px 40px 28px 28px; background: linear-gradient(#d7ebe4, #b7d4cb); }
 .shape-legs { display: flex; gap: 8px; }
 .shape-legs i { width: calc(18px * var(--bulk, 1)); height: 70px; border-radius: 12px; background: #c5dbd3; display: block; }
-.capture-grid, .review-grid { grid-template-columns: 1fr 1fr; }
+.capture-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 260px));
+  justify-content: center;
+  gap: 16px;
+}
+.review-grid { grid-template-columns: 1fr 1fr; }
 .capture-tile, .review-grid figure { border: 1px dashed var(--line); border-radius: 18px; padding: 12px; background: var(--bg-subtle); margin: 0; }
 .capture-tile.is-drag { border-color: var(--accent); background: var(--accent-soft); }
 .capture-tile header, .report-brand { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 800; }
 .capture-frame, .camera-stage, .photo-stage { position: relative; aspect-ratio: 3 / 4; border-radius: 16px; overflow: hidden; background: var(--bg-elevated); display: grid; place-items: center; }
 .capture-frame img, .review-grid img, .photo-stage img, .camera-stage video, .camera-stage img { width: 100%; height: 100%; object-fit: contain; }
-.capture-empty { color: var(--muted); font-weight: 700; text-align: center; padding: 16px; }
+.capture-frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--line); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 .pill[data-kind="sample"] { background: #fff6e8; color: #6a4e12; }
 .pill[data-kind="photo"] { background: var(--accent-soft); color: var(--accent-ink); }
