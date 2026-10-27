@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TAILARS concept prototype: a local body-scan studio with on-device pose landmarks and illustrative tailoring measurements. Not for garment cutting.">
+  <meta name="theme-color" content="#10242a">
+  <title>TAILARS | Body Measurement Studio</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,560&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/print.css" media="print">
+  <script>
+    try {
+      var theme = localStorage.getItem('tailars-theme');
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    } catch (e) {}
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js",
+      "three/addons/": "./vendor/addons/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#overview">Skip to content</a>
+  <div class="ribbon">
+    <p>Concept Prototype — Measurements are illustrative and not suitable for tailoring.</p>
+  </div>
+  <header class="site-header">
+    <div class="shell header-bar">
+      <a class="brand" href="#overview" aria-label="TAILARS">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span>TAILARS</span>
+      </a>
+      <button id="navToggle" class="nav-toggle" type="button" aria-expanded="false" aria-controls="navPanel" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="navPanel" class="nav-panel" aria-label="Main">
+        <a class="nav-link" href="#overview" data-i18n="nav.overview">Overview</a>
+        <a class="nav-link" href="#studio" data-i18n="nav.studio">Body Scan Studio</a>
+        <a class="nav-link" href="#visualization" data-i18n="nav.viz">3D Visualization</a>
+        <a class="nav-link" href="#report" data-i18n="nav.report">Measurement Report</a>
+        <a class="nav-link" href="#how" data-i18n="nav.how">How It Works</a>
+      </nav>
+      <div class="header-tools">
+        <button id="langToggle" class="tool-btn" type="button">বাংলা</button>
+        <button id="themeToggle" class="tool-btn" type="button" aria-pressed="false">
+          <span data-theme-label>Dark</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section id="overview" class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow" data-i18n="hero.eyebrow">Fashion technology concept</p>
+          <h1>
+            <span data-i18n="hero.title1">Your Body. Your Measurements.</span>
+            <em data-i18n="hero.title2">Your Perfect Fit.</em>
+          </h1>
+          <p class="lead" data-i18n="hero.lead">Tailars shows tailors, designers, and clothing teams how a photo-guided fitting studio could feel. Capture two views, preview on-device pose landmarks, and explore an illustrative measurement report.</p>
+          <div class="hero-actions">
+            <a class="tl-btn tl-btn-primary" href="#studio" data-i18n="hero.start">Start Body Scan</a>
+            <a class="tl-btn tl-btn-ghost light" href="#how" data-i18n="hero.explore">Explore Demo</a>
+            <button class="tl-btn tl-btn-line js-load-sample" type="button" data-i18n="hero.sample">Try with Sample Body</button>
+          </div>
+          <p class="hero-note" data-i18n="hero.note">Photos stay in this browser. Circumference and tailoring values are illustrative, not tape measurements.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="studio-card">
+            <div class="studio-card-bar">
+              <span data-i18n="hero.cardKicker">Measurement studio</span>
+              <span class="live-dot" data-i18n="hero.cardStatus">Sample preview</span>
+            </div>
+            <div class="hero-figures">
+              <figure><img src="assets/front-outline.svg" alt=""><figcaption data-i18n="hero.front">Front</figcaption></figure>
+              <figure><img src="assets/side-outline.svg" alt=""><figcaption data-i18n="hero.side">Side</figcaption></figure>
+            </div>
+            <div class="float-card float-a"><small data-i18n="hero.floatChest">Chest (sample)</small><strong>94.0 cm</strong></div>
+            <div class="float-card float-b"><small data-i18n="hero.floatHeight">Height (sample)</small><strong>170 cm</strong></div>
+            <div class="studio-card-foot"><span data-i18n="hero.footer1">Two-view workflow</span><span data-i18n="hero.footer2">Illustrative report</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="shell">
+        <p class="eyebrow" data-i18n="how.eyebrow">How it works</p>
+        <div class="section-head">
+          <h2 data-i18n="how.title">A client journey you can actually click through.</h2>
+          <p data-i18n="how.lead">The interface is real. The tape measurements are a clearly labeled demonstration, ready for a future measurement service to replace.</p>
+        </div>
+        <div class="steps">
+          <article class="step-card"><span>01</span><h3 data-i18n="how.s1t">Set a body profile</h3><p data-i18n="how.s1b">Add an optional name, height, display units, and an illustrative body preset.</p></article>
+          <article class="step-card"><span>02</span><h3 data-i18n="how.s2t">Capture two views</h3><p data-i18n="how.s2b">Upload, drop, or use the device camera for a front photo and a side photo. Or load sample illustrations.</p></article>
+          <article class="step-card"><span>03</span><h3 data-i18n="how.s3t">Preview landmarks</h3><p data-i18n="how.s3b">When the on-device pose model loads, joints are drawn on the photographs. Samples skip this step.</p></article>
+          <article class="step-card"><span>04</span><h3 data-i18n="how.s4t">Review the studio</h3><p data-i18n="how.s4b">Inspect illustrative measurements, the 3D mannequin, and a report you can edit, export, or print.</p></article>
+        </div>
+        <div class="split">
+          <article class="split-card">
+            <h3 data-i18n="how.realTitle">This browser actually does</h3>
+            <ul>
+              <li data-i18n="how.real1">Camera capture, upload, and local preview</li>
+              <li data-i18n="how.real2">Image type, size, and decode checks</li>
+              <li data-i18n="how.real3">On-device pose landmarks when the model loads</li>
+              <li data-i18n="how.real4">Unit conversion and manual edits</li>
+              <li data-i18n="how.real5">CSV, JSON, and browser print</li>
+            </ul>
+          </article>
+          <article class="split-card muted-card">
+            <h3 data-i18n="how.simTitle">This demo simulates</h3>
+            <ul>
+              <li data-i18n="how.sim1">Chest, waist, hip, and other tailoring values</li>
+              <li data-i18n="how.sim2">Body-shape presets</li>
+              <li data-i18n="how.sim3">The 3D mannequin’s proportions</li>
+              <li data-i18n="how.sim4">The sample measurement report</li>
+            </ul>
+          </article>
+        </div>
+        <article class="future-card">
+          <h3 data-i18n="how.futureTitle">Ready for a real measurement service</h3>
+          <p data-i18n="how.futureBody">The demo engine follows a MeasurementProvider contract. A validated service can replace it later without rewriting the studio, 3D view, or report.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="studio" class="section section-studio">
+      <div class="shell">
+        <p class="eyebrow" data-i18n="studio.eyebrow">Body Scan Studio</p>
+        <div class="section-head">
+          <h2 data-i18n="studio.title">Guided three-step capture</h2>
+          <p data-i18n="studio.lead">Nothing is uploaded. Generate a preview only after the profile and both views are ready.</p>
+        </div>
+        <ol class="stepper">
+          <li><button type="button" data-step-jump="1" aria-current="step"><span>1</span><span data-i18n="step.profile">Body profile</span></button></li>
+          <li><button type="button" data-step-jump="2"><span>2</span><span data-i18n="step.capture">Photo capture</span></button></li>
+          <li><button type="button" data-step-jump="3"><span>3</span><span data-i18n="step.review">Review</span></button></li>
+        </ol>
+
+        <div class="panel" data-step-panel="1">
+          <div class="profile-layout">
+            <form id="profileForm" novalidate>
+              <h3 tabindex="-1" data-i18n="profile.title">Body profile</h3>
+              <p class="quiet" data-i18n="profile.lead">Height drives the illustrative scale. Presets only change the demo shape — they are not a scan of a person.</p>
+              <label class="field-label" for="displayName" data-i18n="profile.name">Display name (optional)</label>
+              <input id="displayName" class="field" name="displayName" maxlength="48" autocomplete="nickname">
+              <p class="quiet" data-i18n="profile.nameHint">Shown on the demo report. Leave blank to use “Demo profile”.</p>
+              <fieldset class="choice-set">
+                <legend data-i18n="profile.height">Height</legend>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="heightMode" value="cm" checked><span data-i18n="profile.cm">Centimetres</span></label>
+                  <label class="choice"><input type="radio" name="heightMode" value="ft"><span data-i18n="profile.ft">Feet and inches</span></label>
+                </div>
+              </fieldset>
+              <div id="cmFields" class="height-fields">
+                <label class="field-label" for="heightCm" data-i18n="profile.cm">Centimetres</label>
+                <input id="heightCm" class="field" type="number" inputmode="decimal" min="100" max="220" step="0.1" value="170" aria-describedby="heightHint heightError">
+              </div>
+              <div id="ftFields" class="height-fields feet-fields" hidden>
+                <label class="field-label" for="heightFeet" data-i18n="profile.feet">Feet</label>
+                <input id="heightFeet" class="field" type="number" inputmode="numeric" min="3" max="7" step="1" value="5">
+                <label class="field-label" for="heightInches" data-i18n="profile.inches">Inches</label>
+                <input id="heightInches" class="field" type="number" inputmode="numeric" min="0" max="11" step="1" value="7">
+              </div>
+              <p id="heightHint" class="quiet"></p>
+              <p id="heightError" class="field-error" role="alert" hidden></p>
+              <fieldset class="choice-set">
+                <legend data-i18n="profile.preset">Demo body preset</legend>
+                <div class="choice-grid">
+                  <label class="choice"><input type="radio" name="preset" value="regular" checked><span data-i18n="preset.regular">Regular</span></label>
+                  <label class="choice"><input type="radio" name="preset" value="slim"><span data-i18n="preset.slim">Slim</span></label>
+                  <label class="choice"><input type="radio" name="preset" value="athletic"><span data-i18n="preset.athletic">Athletic</span></label>
+                  <label class="choice"><input type="radio" name="preset" value="full"><span data-i18n="preset.full">Full</span></label>
+                </div>
+                <p class="quiet" data-i18n="profile.presetNote">Presets are illustration controls, not measured body types.</p>
+              </fieldset>
+              <fieldset class="choice-set">
+                <legend data-i18n="profile.units">Preferred measurement units</legend>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="units" value="cm" checked><span data-i18n="common.cm">cm</span></label>
+                  <label class="choice"><input type="radio" name="units" value="in"><span data-i18n="common.in">in</span></label>
+                </div>
+                <p class="quiet" data-i18n="profile.unitsNote">You can switch units again in the report.</p>
+              </fieldset>
+              <div class="action-row">
+                <button id="toCaptureBtn" class="tl-btn tl-btn-primary" type="button" data-i18n="profile.continue">Continue to photos</button>
+                <button class="tl-btn tl-btn-ghost js-reset" type="button" data-i18n="report.reset">Reset report</button>
+              </div>
+            </form>
+            <aside class="shape-card" id="presetPreview">
+              <div class="shape-stage" aria-hidden="true"><div class="shape-head"></div><div class="shape-neck"></div><div class="shape-torso"></div><div class="shape-legs"><i></i><i></i></div></div>
+              <p data-i18n="profile.previewLabel">Illustrative shape preview</p>
+            </aside>
+          </div>
+        </div>
+
+        <div class="panel" data-step-panel="2" hidden>
+          <h3 tabindex="-1" data-i18n="capture.title">Photo capture</h3>
+          <p class="quiet" data-i18n="capture.lead">Add a front view and a side view. Use a photo, the camera, or a sample illustration.</p>
+          <div class="capture-grid">
+            <article class="capture-tile" id="frontDrop">
+              <header><span data-i18n="capture.front">Front</span><span id="frontBadge" class="pill" data-kind="empty">Empty</span></header>
+              <div class="capture-frame">
+                <div id="frontEmpty" class="capture-empty"><span data-i18n="capture.drop">Drop an image here</span></div>
+                <img id="frontPreview" alt="" hidden>
+              </div>
+              <div class="tile-actions">
+                <label class="tl-btn tl-btn-ghost" for="frontInput"><span data-i18n="capture.upload">Upload</span></label>
+                <input id="frontInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="camera" data-view="front" data-i18n="capture.camera">Camera</button>
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="sample" data-view="front" data-i18n="capture.sample">Sample</button>
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="remove" data-view="front" data-i18n="capture.remove" hidden>Remove</button>
+              </div>
+            </article>
+            <article class="capture-tile" id="sideDrop">
+              <header><span data-i18n="capture.side">Side</span><span id="sideBadge" class="pill" data-kind="empty">Empty</span></header>
+              <div class="capture-frame">
+                <div id="sideEmpty" class="capture-empty"><span data-i18n="capture.drop">Drop an image here</span></div>
+                <img id="sidePreview" alt="" hidden>
+              </div>
+              <div class="tile-actions">
+                <label class="tl-btn tl-btn-ghost" for="sideInput"><span data-i18n="capture.upload">Upload</span></label>
+                <input id="sideInput" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="camera" data-view="side" data-i18n="capture.camera">Camera</button>
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="sample" data-view="side" data-i18n="capture.sample">Sample</button>
+                <button class="tl-btn tl-btn-ghost" type="button" data-capture-action="remove" data-view="side" data-i18n="capture.remove" hidden>Remove</button>
+              </div>
+            </article>
+          </div>
+          <p class="quiet" data-i18n="capture.formats">JPEG, PNG, or WebP. Maximum 12 MB. Photos never leave this browser.</p>
+          <p id="captureAlert" class="field-error" role="alert" hidden></p>
+          <div class="action-row">
+            <button id="backToProfileBtn" class="tl-btn tl-btn-ghost" type="button" data-i18n="capture.back">Back</button>
+            <button id="sampleBothBtn" class="tl-btn tl-btn-line" type="button" data-i18n="capture.both">Try with Sample Body</button>
+            <button id="toReviewBtn" class="tl-btn tl-btn-primary" type="button" data-i18n="capture.continue" disabled>Review capture</button>
+          </div>
+        </div>
+
+        <div class="panel" data-step-panel="3" hidden>
+          <h3 tabindex="-1" data-i18n="review.title">Review and process</h3>
+          <p class="quiet" data-i18n="review.lead">Check both views, then generate the illustrative measurement preview.</p>
+          <div class="review-grid">
+            <figure><img id="reviewFront" alt="" hidden><figcaption id="reviewFrontMeta"></figcaption></figure>
+            <figure><img id="reviewSide" alt="" hidden><figcaption id="reviewSideMeta"></figcaption></figure>
+          </div>
+          <p class="review-profile"><span data-i18n="review.profileLabel">Profile</span> <strong id="reviewProfile"></strong></p>
+          <h4 data-i18n="review.poseTitle">Capture notes</h4>
+          <ul id="qualityList" class="quality-list"></ul>
+          <div id="processingPanel" class="processing-panel" hidden>
+            <p id="processingDetail" role="status"></p>
+            <ol id="processingList" class="process-list">
+              <li data-stage="prepare" data-state="wait"><span data-i18n="process.prepare">Preparing images</span></li>
+              <li data-stage="ready" data-state="wait"><span data-i18n="process.ready">Checking capture readiness</span></li>
+              <li data-stage="pose" data-state="wait"><span data-i18n="process.pose">Detecting pose landmarks</span><small id="poseStageNote"></small></li>
+              <li data-stage="measure" data-state="wait"><span data-i18n="process.measure">Preparing illustrative measurements</span></li>
+              <li data-stage="visual" data-state="wait"><span data-i18n="process.visual">Generating visualization</span></li>
+              <li data-stage="report" data-state="wait"><span data-i18n="process.report">Building report</span></li>
+            </ol>
+            <button id="processingRetry" class="tl-btn tl-btn-primary" type="button" hidden data-i18n="process.retry">Try again</button>
+          </div>
+          <div class="action-row">
+            <button id="backToCaptureBtn" class="tl-btn tl-btn-ghost" type="button" data-i18n="review.back">Back to photos</button>
+            <button id="detectBtn" class="tl-btn tl-btn-line" type="button" data-i18n="review.detect">Detect landmarks now</button>
+            <button id="generateBtn" class="tl-btn tl-btn-primary" type="button" disabled><span data-i18n="review.generate">Generate Measurement Preview</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="visualization" class="section">
+      <div class="shell">
+        <p class="eyebrow" data-i18n="viz.eyebrow">3D visualization</p>
+        <div class="section-head">
+          <h2 data-i18n="viz.title">Studio body view</h2>
+          <p data-i18n="viz.lead">The mannequin is a procedural illustration. It is not reconstructed from the uploaded photos.</p>
+        </div>
+        <p id="vizAwaiting" class="note-banner" data-i18n="viz.awaiting">Generate a measurement preview to attach demo values. You can still rotate the mannequin.</p>
+        <div class="viz-layout">
+          <article class="panel diagram-panel">
+            <div class="toolbar" role="group" aria-label="Diagram">
+              <button id="viewFrontBtn" class="seg is-selected" type="button" aria-pressed="true" data-i18n="viz.front">Front</button>
+              <button id="viewSideBtn" class="seg" type="button" aria-pressed="false" data-i18n="viz.side">Side</button>
+              <button id="modeDiagramBtn" class="seg is-selected" type="button" aria-pressed="true" data-i18n="viz.diagram">Diagram</button>
+              <button id="modePhotoBtn" class="seg" type="button" aria-pressed="false" data-i18n="viz.photo" disabled>Photo landmarks</button>
+            </div>
+            <label class="check-line"><input id="overlayToggle" type="checkbox" checked disabled> <span data-i18n="viz.overlay">Show landmark overlay</span></label>
+            <div class="diagram-stage">
+              <div id="bodyDiagram" class="diagram-svg"></div>
+              <div id="photoStage" class="photo-stage" hidden>
+                <img id="photoImage" alt="">
+                <canvas id="poseCanvas" aria-hidden="true"></canvas>
+              </div>
+              <div id="diagramCallouts" class="callouts" role="group"></div>
+            </div>
+            <p id="poseSummary" class="quiet" role="status"></p>
+            <p id="diagramNote" class="quiet"></p>
+          </article>
+          <article class="panel viewer-panel">
+            <div class="toolbar" role="group" aria-label="Preset">
+              <span class="toolbar-label" data-i18n="viz.presetLabel">Illustrative preset</span>
+              <button class="seg" type="button" data-preset="slim" data-i18n="preset.slim">Slim</button>
+              <button class="seg is-selected" type="button" data-preset="regular" aria-pressed="true" data-i18n="preset.regular">Regular</button>
+              <button class="seg" type="button" data-preset="athletic" data-i18n="preset.athletic">Athletic</button>
+              <button class="seg" type="button" data-preset="full" data-i18n="preset.full">Full</button>
+            </div>
+            <div id="viewer3d" class="viewer">
+              <p class="viewer-badge" data-i18n="viz.modelLabel">Illustrative 3D Body Model</p>
+              <canvas id="avatarCanvas" tabindex="0" data-i18n-aria="viz.modelLabel" aria-describedby="viewerHelp"></canvas>
+              <div id="annoLayer" class="anno-layer"></div>
+              <div id="viewerFallback" class="viewer-fallback" hidden></div>
+            </div>
+            <div id="viewerControls" class="toolbar viewer-controls">
+              <button id="camFront" class="seg" type="button" data-i18n="viz.frontView">Front view</button>
+              <button id="camBack" class="seg" type="button" data-i18n="viz.backView">Back view</button>
+              <button id="camLeft" class="seg" type="button" data-i18n="viz.leftView">Left side</button>
+              <button id="camRight" class="seg" type="button" data-i18n="viz.rightView">Right side</button>
+              <button id="camReset" class="seg" type="button" data-i18n="viz.reset">Reset camera</button>
+              <button id="zoomIn" class="seg" type="button" data-i18n="viz.zoomIn">Zoom in</button>
+              <button id="zoomOut" class="seg" type="button" data-i18n="viz.zoomOut">Zoom out</button>
+            </div>
+            <p id="viewerHelp" class="quiet" data-i18n="viz.help">Drag to rotate. Scroll or pinch to zoom. Arrow keys rotate when the 3D view is focused. Buttons set front, back, and side views.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="report" class="section section-report">
+      <div class="shell">
+        <p class="eyebrow" data-i18n="dash.eyebrow">Measurement report</p>
+        <div class="section-head">
+          <h2 data-i18n="dash.title">Illustrative measurement dashboard</h2>
+          <p data-i18n="dash.lead">Eighteen demo values stay in sync with the diagram, mannequin, and export. Edited rows are marked.</p>
+        </div>
+        <div id="dashboard" class="dash-layout">
+          <div id="dashEmpty" class="empty-card">
+            <h3 data-i18n="report.emptyTitle">The report is waiting for a preview</h3>
+            <p data-i18n="dash.empty">Generate a preview in the studio to fill this dashboard.</p>
+            <a class="tl-btn tl-btn-primary" href="#studio" data-i18n="hero.start">Start Body Scan</a>
+          </div>
+          <div id="dashTools" class="dash-tools" hidden>
+            <label class="search-field" for="measurementSearch"><span class="visually-hidden" data-i18n="dash.search">Search measurements</span>
+              <input id="measurementSearch" class="field" type="search" data-i18n-placeholder="dash.search" placeholder="Search measurements" autocomplete="off">
+            </label>
+            <div class="toolbar" role="group" aria-label="Categories">
+              <button class="seg is-selected" type="button" data-filter="all" aria-pressed="true" data-i18n="dash.all">All</button>
+              <button class="seg" type="button" data-filter="upper" aria-pressed="false" data-i18n="dash.upper">Upper body</button>
+              <button class="seg" type="button" data-filter="torso" aria-pressed="false" data-i18n="dash.torso">Torso</button>
+              <button class="seg" type="button" data-filter="arms" aria-pressed="false" data-i18n="dash.arms">Arms</button>
+              <button class="seg" type="button" data-filter="lower" aria-pressed="false" data-i18n="dash.lower">Lower body</button>
+            </div>
+            <div class="unit-switch" role="group" aria-label="Units">
+              <button id="unitCm" class="seg is-selected" type="button" aria-pressed="true">cm</button>
+              <button id="unitIn" class="seg" type="button" aria-pressed="false">in</button>
+            </div>
+          </div>
+          <p id="dashNoMatch" class="empty-card" hidden data-i18n="dash.noMatch">No measurements match that search.</p>
+          <div class="dash-grid">
+            <div id="measurementList" class="measure-list" aria-live="polite"></div>
+            <aside id="editor" class="editor" hidden>
+              <p class="pill" id="editorSource"></p>
+              <h3 id="editorTitle"></h3>
+              <p id="editorHint" class="quiet"></p>
+              <label class="field-label" for="editValue" data-i18n="editor.value">Value</label>
+              <div class="edit-row">
+                <input id="editValue" class="field" inputmode="decimal" autocomplete="off">
+                <span id="editUnit">cm</span>
+              </div>
+              <p id="editError" class="field-error" role="alert" hidden></p>
+              <p id="editCompare" class="quiet" hidden></p>
+              <div class="action-row">
+                <button id="editApply" class="tl-btn tl-btn-primary" type="button" data-i18n="dash.apply">Save edit</button>
+                <button id="editReset" class="tl-btn tl-btn-ghost" type="button" data-i18n="dash.resetOne" hidden>Reset to demo value</button>
+                <button id="editProfileBtn" class="tl-btn tl-btn-ghost" type="button" data-i18n="editor.editProfile" hidden>Edit height in profile</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <div id="reportEmpty" class="empty-card report-empty">
+          <h3 data-i18n="report.emptyTitle">The report is waiting for a preview</h3>
+          <p data-i18n="report.emptyBody">Finish the studio steps, or try the sample body, to build an illustrative report.</p>
+        </div>
+        <article id="reportSheet" class="report-sheet" hidden>
+          <header class="report-brand">
+            <span class="brand"><span class="brand-mark" aria-hidden="true">T</span> TAILARS</span>
+            <span class="pill" data-i18n="badge.sim">Illustrative data</span>
+          </header>
+          <p class="disclaimer-exact">Concept Prototype — Measurements are illustrative and not suitable for tailoring.</p>
+          <p class="quiet">Do not use these values for garment cutting, sizing decisions, or medical purposes.</p>
+          <dl class="report-meta">
+            <div><dt data-i18n="report.name">Demo profile</dt><dd id="reportName"></dd></div>
+            <div><dt data-i18n="report.height">Entered height</dt><dd id="reportHeight"></dd></div>
+            <div><dt data-i18n="report.preset">Body preset</dt><dd id="reportPreset"></dd></div>
+            <div><dt data-i18n="report.units">Display unit</dt><dd id="reportUnits"></dd></div>
+            <div><dt data-i18n="report.date">Measurement date</dt><dd id="reportWhen"></dd></div>
+            <div><dt data-i18n="report.front">Front source</dt><dd id="reportFront"></dd></div>
+            <div><dt data-i18n="report.side">Side source</dt><dd id="reportSide"></dd></div>
+            <div><dt data-i18n="report.poseFront">Front landmarks</dt><dd id="reportPoseFront"></dd></div>
+            <div><dt data-i18n="report.poseSide">Side landmarks</dt><dd id="reportPoseSide"></dd></div>
+          </dl>
+          <div id="reportFigure" class="report-figure"></div>
+          <table id="reportTable">
+            <caption data-i18n="report.tableCaption">Illustrative measurements</caption>
+            <thead><tr>
+              <th data-i18n="report.colMeasurement" scope="col">Measurement</th>
+              <th data-i18n="report.colValue" scope="col">Value</th>
+              <th data-i18n="report.colDemo" scope="col">Demo value</th>
+              <th data-i18n="report.colSource" scope="col">Source</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="action-row report-actions">
+            <button id="downloadCsv" class="tl-btn tl-btn-primary" type="button" disabled data-i18n="report.csv">Download CSV</button>
+            <button id="downloadJson" class="tl-btn tl-btn-ghost" type="button" disabled data-i18n="report.json">Download JSON</button>
+            <button id="printReport" class="tl-btn tl-btn-ghost" type="button" disabled data-i18n="report.print">Print / Save as PDF</button>
+            <button id="editReportBtn" class="tl-btn tl-btn-line" type="button" data-i18n="report.edit">Modify measurements</button>
+            <button class="tl-btn tl-btn-ghost js-reset" type="button" data-i18n="report.reset">Reset report</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">T</span> TAILARS</div>
+      <p class="disclaimer-exact">Concept Prototype — Measurements are illustrative and not suitable for tailoring.</p>
+      <p data-i18n="footer.extra">Photos are processed in this browser only. They are not uploaded, not saved in site storage, and not included in exports. A public pose model may download from a CDN; images are not sent with that request.</p>
+      <p data-i18n="footer.privacy">Not for medical use or production cutting.</p>
+      <p data-i18n="footer.tag">Body measurement experience · concept prototype</p>
+    </div>
+  </footer>
+
+  <div id="toasts" class="toast-region" aria-live="polite" aria-relevant="additions"></div>
+  <div id="diagramTooltip" class="tip" role="tooltip" hidden></div>
+
+  <dialog id="cameraDialog" class="camera-dialog" aria-labelledby="cameraTitle">
+    <div class="dialog-head">
+      <h2 id="cameraTitle" data-i18n="camera.title">Camera capture</h2>
+      <p id="cameraViewLabel"></p>
+      <button id="cameraClose" class="tool-btn" type="button" data-i18n="camera.close">Close</button>
+    </div>
+    <div id="cameraPrivacy" class="dialog-body">
+      <p data-i18n="camera.privacy"></p>
+      <button id="cameraAck" class="tl-btn tl-btn-primary" type="button" data-i18n="camera.ack">I understand, open camera</button>
+    </div>
+    <div id="cameraLive" class="dialog-body" hidden>
+      <div class="camera-stage">
+        <video id="cameraVideo" playsinline autoplay muted></video>
+        <img id="cameraStill" alt="" hidden>
+        <div class="camera-guide" aria-hidden="true"></div>
+        <p class="camera-help" data-i18n="camera.help">Stand fully in frame, arms slightly away from the body, with even light. This guide is only a framing aid.</p>
+      </div>
+      <p id="cameraError" class="field-error" role="alert" hidden></p>
+      <div class="action-row">
+        <button id="cameraSwitch" class="tl-btn tl-btn-ghost" type="button" data-i18n="camera.switch" hidden>Switch camera</button>
+        <button id="cameraShoot" class="tl-btn tl-btn-primary" type="button" data-i18n="camera.capture">Capture</button>
+        <button id="cameraRetake" class="tl-btn tl-btn-ghost" type="button" data-i18n="camera.retake" hidden>Retake</button>
+        <button id="cameraUse" class="tl-btn tl-btn-primary" type="button" data-i18n="camera.use" hidden>Use this photo</button>
+      </div>
+    </div>
+    <canvas id="cameraCanvas" hidden></canvas>
+  </dialog>
+
+  <dialog id="resetDialog" aria-labelledby="resetTitle">
+    <form method="dialog" class="dialog-body">
+      <h2 id="resetTitle" data-i18n="confirm.title">Reset this session?</h2>
+      <p data-i18n="confirm.body">Previews, edits, and the illustrative report will clear. Photos were never uploaded. This cannot be undone in the page.</p>
+      <div class="action-row">
+        <button class="tl-btn tl-btn-ghost" type="submit" value="cancel" data-i18n="confirm.cancel">Cancel</button>
+        <button class="tl-btn tl-btn-primary" type="submit" value="confirm" data-i18n="confirm.confirm">Reset session</button>
+      </div>
+    </form>
+  </dialog>
+
+  <noscript><p class="noscript">TAILARS needs JavaScript to run this local studio. No account is required.</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

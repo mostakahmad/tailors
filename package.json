@@ -1,0 +1,9 @@
+{
+  "name": "tailars-body-scan-demo",
+  "private": true,
+  "type": "module",
+  "description": "Static Tailars body-measurement concept prototype for GitHub Pages.",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}

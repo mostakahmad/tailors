@@ -1,0 +1,44 @@
+@media (max-width: 1100px) {
+  .nav-toggle { display: inline-flex; flex-direction: column; justify-content: center; margin-left: auto; }
+  .nav-panel {
+    display: none; position: absolute; top: calc(100% + 8px); left: 16px; right: 16px;
+    flex-direction: column; align-items: stretch; padding: 12px; border-radius: 16px;
+    background: var(--bg-elevated); border: 1px solid var(--line); box-shadow: var(--shadow);
+  }
+  .nav-panel.is-open { display: flex; }
+  .nav-link { padding: 12px; border-radius: 10px; }
+  .header-bar { position: relative; }
+  .hero-grid, .profile-layout, .viz-layout, .split, .steps { grid-template-columns: 1fr; }
+  .section-head { display: block; }
+  .choice-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .shell { width: min(1180px, calc(100% - 24px)); }
+  .hero-grid { padding: 42px 0 48px; }
+  .hero h1 { font-size: clamp(36px, 11vw, 56px); }
+  .section { padding: 56px 0; }
+  .capture-grid, .review-grid, .dash-grid, .report-meta, .diagram-stage { grid-template-columns: 1fr; }
+  .float-a, .float-b { position: static; margin-top: 8px; }
+  .studio-card { margin-inline: 0; }
+  .hero-figures figure { min-height: 210px; }
+  .hero-figures img { height: 180px; }
+  .viewer { height: 520px; min-height: 420px; }
+  .editor { position: static; }
+  .stepper { grid-template-columns: 1fr; }
+  .stepper button span:last-child { font-size: 14px; }
+  input, select, textarea { font-size: 16px; }
+}
+@media (max-width: 390px) {
+  .ribbon { font-size: 11px; letter-spacing: 0; }
+  .brand { font-size: 13px; letter-spacing: 0.04em; }
+  .header-tools .tool-btn { padding-inline: 8px; }
+  .hero-actions .tl-btn, .action-row .tl-btn, .tile-actions .tl-btn { width: 100%; justify-content: center; }
+  .choice-grid, .feet-fields { grid-template-columns: 1fr; }
+  .capture-frame { aspect-ratio: 4 / 5; }
+  .anno { max-width: 116px; font-size: 12px; }
+  .report-sheet th, .report-sheet td { font-size: 13px; padding: 8px 4px; }
+}
+@media (min-width: 1440px) {
+  .shell { width: min(1240px, calc(100% - 48px)); }
+  .hero-grid { padding: 96px 0 108px; }
+}

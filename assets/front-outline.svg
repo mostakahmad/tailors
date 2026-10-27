@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 360" fill="none">
+  <defs>
+    <linearGradient id="cloth" x1="35" y1="46" x2="205" y2="306" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9E9E4"/><stop offset="1" stop-color="#9DBFB5"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="120" y1="18" x2="120" y2="103" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9DCCA"/><stop offset="1" stop-color="#E8BDA7"/>
+    </linearGradient>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#3B655A" flood-opacity="0.13"/></filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M107 71L104 86H136L133 71" fill="url(#skin)" stroke="#6F8F84" stroke-width="1.5"/>
+    <path d="M97 86L80 96Q75 98 72 111L57 177Q54 185 60 190Q66 194 70 187L88 145L91 212L82 327Q81 335 90 337L102 337Q108 335 110 326L119 229L130 326Q132 335 140 337H153Q162 336 160 326L150 213L153 146L173 186Q177 195 184 190Q190 186 187 178L169 111Q166 98 159 95L142 86L130 91L120 99L109 91Z" fill="url(#cloth)" stroke="#5B8075" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M91 211Q120 222 151 212M100 151Q120 158 141 151" stroke="#70968A" stroke-opacity="0.52" stroke-width="1.6"/>
+    <path d="M100 337L98 345Q97 351 89 351H76Q73 347 79 343L84 334M140 337L142 345Q143 351 151 351H164Q167 347 161 343L156 334" fill="#3B6157" stroke="#3B6157" stroke-width="2"/>
+    <ellipse cx="120" cy="43" rx="23" ry="29" fill="url(#skin)" stroke="#B38B79" stroke-width="1.4"/>
+    <path d="M99 39Q94 22 106 16Q120 7 135 16Q147 21 143 39Q138 25 129 24Q114 31 99 39Z" fill="#344C46"/>
+  </g>
+</svg>
