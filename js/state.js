@@ -44,6 +44,7 @@ export const state = {
   filter: 'all',
   query: '',
   generatedAt: null,
+  sessionToken: 0,
   processing: false,
   processingError: false,
   diagramView: 'front',
@@ -51,9 +52,14 @@ export const state = {
 };
 
 let beforeReset = () => {};
+let afterReset = () => {};
 
 export function setBeforeReset(fn) {
   beforeReset = fn;
+}
+
+export function setAfterReset(fn) {
+  afterReset = fn;
 }
 
 export function subscribe(fn) {
@@ -103,7 +109,16 @@ export function captureSource(capture) {
   return capture.kind === 'sample' ? capture.src : capture.objectUrl;
 }
 
+export function bumpSessionToken() {
+  state.sessionToken += 1;
+}
+
+export function sessionIsCurrent(token) {
+  return token === state.sessionToken;
+}
+
 export function replaceCapture(view, next) {
+  bumpSessionToken();
   const prev = state.captures[view];
   if (prev?.objectUrl && prev.objectUrl !== next.objectUrl && typeof URL.revokeObjectURL === 'function') {
     URL.revokeObjectURL(prev.objectUrl);
@@ -155,6 +170,7 @@ export function resetMeasurement(key) {
 }
 
 export function resetSession() {
+  bumpSessionToken();
   beforeReset();
   for (const view of ['front', 'side']) {
     const cap = state.captures[view];
@@ -176,5 +192,6 @@ export function resetSession() {
   state.pose.engine = 'idle';
   state.pose.engineCode = 'idle';
   state.pose.overlay = true;
+  afterReset();
   emit();
 }

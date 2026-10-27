@@ -1,10 +1,40 @@
 @media print {
   body { background: #fff !important; color: #000 !important; }
-  .ribbon, .site-header, .hero, #how, #studio, #visualization, #dashboard, #reportEmpty,
+  .ribbon, .site-header, .hero, #how, #studio, #visualization, #dashboard,
   .site-footer, .toast-region, .tip, .report-actions, .nav-toggle, dialog { display: none !important; }
+  #report .eyebrow,
+  #report .section-head { display: none !important; }
   .section { padding: 0; }
-  #reportSheet { display: block !important; border: 0; box-shadow: none; }
+  #report { background: #fff !important; color: #000 !important; }
+  #reportEmpty {
+    display: block !important;
+    background: transparent !important;
+    color: #000 !important;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  #reportEmpty[hidden] { display: none !important; }
+  #reportEmpty p { display: none !important; }
+  #reportSheet {
+    display: block !important;
+    border: 0;
+    box-shadow: none;
+    background: #fff !important;
+    color: #000 !important;
+  }
   #reportSheet[hidden] { display: none !important; }
+  .report-meta div { background: #fff !important; }
+  .report-meta dt,
+  .report-sheet .quiet,
+  .report-sheet .disclaimer-exact,
+  .report-sheet th,
+  .report-sheet td { color: #000 !important; }
+  .table-scroll { overflow: visible; }
+  #reportTable { min-width: 0; }
+  .figure-body { fill: #d5e6df !important; stroke: #245046 !important; }
+  .guide,
+  .guide-tick { fill: none !important; stroke: #245046 !important; }
   a { color: inherit; text-decoration: none; }
   .report-sheet tr.is-edited { background: #fff8e8 !important; }
 }

@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildMeasurements, mergeMeasurements } from '../js/demoMeasurements.js';
 import { validateFileMeta } from '../js/imageValidation.js';
-import { assessPose } from '../js/poseDetection.js';
+import { assessPose, captureStillCurrent } from '../js/poseDetection.js';
 import { createReportSnapshot, toCsv, toJson } from '../js/report.js';
-import { cmToFeetParts, feetInchesToCm, formatMeasurement, round1 } from '../js/utils.js';
-import { DISCLAIMER } from '../js/config.js';
+import { replaceCapture, resetSession, sessionIsCurrent, state } from '../js/state.js';
+import { applyDisplayedEdit, cmToFeetParts, feetInchesToCm, formatMeasurement, formatNumber, resolveHeightCm, round1 } from '../js/utils.js';
+import { CUTTING_WARNING, DISCLAIMER, calloutValueKey, selectionHighlights } from '../js/config.js';
 
 test('regular 170 cm demo matches the published baselines', () => {
   const rows = Object.fromEntries(buildMeasurements(170, 'regular').map((item) => [item.key, item.valueCm]));
@@ -51,6 +52,124 @@ test('manual edits survive a preset change and height does not', () => {
   assert.equal(chest.illustrativeCm, 99.5);
   assert.equal(chest.source, 'manual_entry');
   assert.equal(merged.find((item) => item.key === 'height').valueCm, 180);
+});
+
+test('highlight follows the selected key and keeps that key’s value', () => {
+  assert.equal(selectionHighlights('neck', 'shoulder'), false);
+  assert.equal(selectionHighlights('neck', 'neck'), true);
+  assert.equal(selectionHighlights('bicep', 'sleeve'), false);
+  assert.equal(selectionHighlights('wrist', 'sleeve'), false);
+  assert.equal(selectionHighlights('torso', 'chest'), true);
+  assert.equal(selectionHighlights('torso', 'waist'), true);
+  assert.equal(selectionHighlights('torso', 'hip'), true);
+  assert.equal(selectionHighlights('back', 'hip'), true);
+  assert.equal(selectionHighlights('torso', 'back'), false);
+  assert.equal(selectionHighlights('back', 'back'), true);
+  assert.equal(calloutValueKey('neck', 'shoulder'), 'neck');
+  assert.equal(calloutValueKey('bicep', 'sleeve'), 'bicep');
+  assert.equal(calloutValueKey('wrist', 'sleeve'), 'wrist');
+  assert.equal(calloutValueKey('back', 'chest'), 'back');
+  assert.equal(calloutValueKey('torso', 'waist'), 'torso');
+  assert.equal(calloutValueKey('torso', 'sleeve'), 'sleeve');
+  assert.equal(calloutValueKey('shoulder', 'shoulder'), 'shoulder');
+  assert.equal(calloutValueKey('chest', 'waist'), 'waist');
+});
+
+test('saving the displayed inch value does not change centimetres or mark the row edited', () => {
+  const item = { key: 'neck', valueCm: 37, illustrativeCm: 37, manuallyEdited: false, source: 'illustrative_demo' };
+  const shown = formatNumber(item.valueCm, 'in');
+  assert.equal(shown, '14.6');
+  const saved = applyDisplayedEdit(item, shown, 'in');
+  assert.equal(saved.ok, true);
+  assert.equal(saved.changed, false);
+  assert.equal(saved.item.valueCm, 37);
+  assert.equal(saved.item.manuallyEdited, false);
+  assert.equal(saved.item.source, 'illustrative_demo');
+  const edited = applyDisplayedEdit(item, '14.7', 'in');
+  assert.equal(edited.changed, true);
+  assert.equal(edited.item.manuallyEdited, true);
+  assert.equal(edited.item.source, 'manual_entry');
+  assert.notEqual(edited.item.valueCm, 37);
+});
+
+test('unedited feet display keeps the stored centimetres', () => {
+  const kept = resolveHeightCm({
+    storedCm: 170,
+    mode: 'ft',
+    cmValue: '170',
+    feet: 5,
+    inches: 7,
+    feetUntouched: true,
+    draftCm: 170,
+  });
+  assert.equal(kept, 170);
+  assert.equal(formatMeasurement(kept, 'cm'), '170.0 cm');
+  assert.equal(feetInchesToCm(5, 7), 170.2);
+  assert.notEqual(kept, 170.2);
+  assert.equal(resolveHeightCm({
+    storedCm: 170,
+    mode: 'ft',
+    cmValue: '171',
+    feet: 5,
+    inches: 8,
+    feetUntouched: false,
+    draftCm: null,
+  }), feetInchesToCm(5, 8));
+  assert.equal(resolveHeightCm({
+    storedCm: 170,
+    mode: 'ft',
+    cmValue: '170',
+    feet: 5,
+    inches: 14,
+    feetUntouched: false,
+    draftCm: null,
+  }), null);
+  assert.equal(resolveHeightCm({
+    storedCm: 170,
+    mode: 'cm',
+    cmValue: '171.26',
+    feet: 5,
+    inches: 7,
+    feetUntouched: true,
+    draftCm: 170,
+  }), 171.3);
+});
+
+test('session token drops a replaced photo and a reset report', () => {
+  const token = state.sessionToken;
+  state.pose.front = { status: 'detected' };
+  replaceCapture('front', {
+    kind: 'sample',
+    objectUrl: null,
+    src: 'assets/sample-front.svg',
+    width: 0,
+    height: 0,
+    mime: 'image/svg+xml',
+    name: '',
+    warnings: [],
+  });
+  assert.equal(sessionIsCurrent(token), false);
+  assert.equal(state.pose.front, null);
+  assert.equal(captureStillCurrent(
+    { kind: 'photo', objectUrl: 'blob:new' },
+    token,
+    'blob:old',
+    state.sessionToken,
+  ), false);
+  assert.equal(captureStillCurrent(
+    { kind: 'photo', objectUrl: 'blob:same' },
+    state.sessionToken,
+    'blob:same',
+    state.sessionToken,
+  ), true);
+  state.generatedAt = 'stale';
+  state.measurements = [{ key: 'chest' }];
+  const mid = state.sessionToken;
+  resetSession();
+  assert.notEqual(state.sessionToken, mid);
+  assert.equal(state.generatedAt, null);
+  assert.deepEqual(state.measurements, []);
+  assert.equal(state.captures.front.kind, 'empty');
 });
 
 test('unit conversion uses 2.54 cm per inch', () => {
@@ -105,15 +224,29 @@ test('exports include the disclaimer and omit landmark coordinates', () => {
   const snapshot = createReportSnapshot({
     profile: { name: 'Avery', heightCm: 170, preset: 'regular', units: 'cm' },
     captures: { front: { kind: 'sample' }, side: { kind: 'photo' } },
-    pose: { front: null, side: { status: 'detected', warnings: [{ code: 'low_resolution' }], peopleCount: 1, landmarks: [{ x: 0.2, y: 0.2 }] } },
+    pose: {
+      front: null,
+      side: {
+        status: 'detected',
+        warnings: [{ code: 'low_resolution' }, { code: 'incomplete_framing' }],
+        peopleCount: 1,
+        landmarks: [{ x: 0.2, y: 0.2 }],
+      },
+    },
     measurements,
     generatedAt: '2026-10-27T00:00:00.000Z',
   });
   const csv = toCsv(snapshot);
   const json = JSON.parse(toJson(snapshot));
+  assert.equal(snapshot.notice, CUTTING_WARNING);
+  assert.equal(snapshot.notice, 'Do not use these values for garment cutting, sizing decisions, or medical purposes. Photographs are not tape measurements.');
+  assert.deepEqual(snapshot.poseSide.warnings, ['low_resolution', 'incomplete_framing']);
   assert.match(csv, new RegExp(DISCLAIMER));
+  assert.ok(csv.includes(CUTTING_WARNING));
   assert.match(csv, /manual_entry/);
   assert.equal(json.disclaimer, DISCLAIMER);
+  assert.equal(json.notice, CUTTING_WARNING);
+  assert.deepEqual(json.poseSide.warnings, ['low_resolution', 'incomplete_framing']);
   assert.equal(json.measurements.find((item) => item.key === 'chest').valueCm, 97);
   assert.equal(json.poseSide.status, 'detected');
   assert.equal(JSON.stringify(json).includes('"x"'), false);

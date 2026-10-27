@@ -26,6 +26,7 @@ Stored only in memory for a tab session:
 - `pose.front` and `pose.side`: slim landmarks `{x, y, visibility}` when detection ran
 - `measurements[]` after a preview is generated
 - `generatedAt`, `selectedKey`, `step` (1–3)
+- `sessionToken` increments on reset and when a capture is replaced. In-flight preview and pose detection compare it after every await and skip pose results, measurements, and `generatedAt` when it has changed. Replacing a photo also requires the same object URL before landmarks are stored.
 
 `localStorage` keys are only `tailars-theme` and `tailars-lang`. Photos, landmarks, and measurements are not written to `localStorage`, `sessionStorage`, or IndexedDB. Object URLs are revoked on replace, reset, and `pagehide`.
 

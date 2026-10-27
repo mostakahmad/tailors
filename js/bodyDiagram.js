@@ -1,4 +1,4 @@
-import { CALLOUT_KEYS, KEY_TO_REGION } from './config.js';
+import { CALLOUT_KEYS, calloutValueKey, selectionHighlights } from './config.js';
 import { t } from './i18n.js';
 import { captureSource, selectMeasurement, state, subscribe } from './state.js';
 import { $, formatMeasurement } from './utils.js';
@@ -75,7 +75,7 @@ function valueFor(key) {
 }
 
 function regionActive(key) {
-  return KEY_TO_REGION[state.selectedKey] === KEY_TO_REGION[key];
+  return selectionHighlights(state.selectedKey, key);
 }
 
 function renderDiagram() {
@@ -100,12 +100,13 @@ function renderDiagram() {
     btn.type = 'button';
     btn.className = 'callout';
     btn.dataset.key = item.key;
+    const displayKey = calloutValueKey(state.selectedKey, item.key);
     btn.setAttribute('aria-pressed', String(regionActive(item.key)));
     if (regionActive(item.key)) btn.classList.add('is-selected');
     const name = document.createElement('span');
-    name.textContent = t(`region.${item.region}`);
+    name.textContent = displayKey === item.key ? t(`region.${item.region}`) : t(`measure.${displayKey}`);
     const value = document.createElement('strong');
-    value.textContent = valueFor(item.key);
+    value.textContent = valueFor(displayKey);
     btn.append(name, value);
     btn.addEventListener('click', () => selectMeasurement(item.key, 'diagram'));
     btn.addEventListener('pointerenter', (event) => showTip(event, item.key));
@@ -202,17 +203,32 @@ function layoutOverlay() {
   canvas.hidden = !show;
   if (show) drawLandmarks(canvas, pose.landmarks);
   else canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+  renderPoseSummary();
+  $('#overlayToggle').disabled = !pose?.landmarks;
+  $('#overlayToggle').checked = state.pose.overlay;
+}
+
+function renderPoseSummary() {
   const summary = $('#poseSummary');
+  const cap = state.captures[state.diagramView];
+  if (cap.kind === 'sample') {
+    summary.textContent = t('pose.skipped');
+    return;
+  }
+  if (state.diagramMode !== 'photo' || cap.kind !== 'photo') {
+    summary.textContent = '';
+    return;
+  }
+  const pose = state.pose[state.diagramView];
   if (!pose) summary.textContent = t('pose.not_run');
   else if (pose.status === 'detected') summary.textContent = t('pose.detected');
   else summary.textContent = t('viz.noLandmarks');
-  $('#overlayToggle').disabled = !pose?.landmarks;
-  $('#overlayToggle').checked = state.pose.overlay;
 }
 
 function render() {
   renderDiagram();
   renderMode();
+  renderPoseSummary();
   const awaiting = $('#vizAwaiting');
   if (awaiting) awaiting.hidden = Boolean(state.generatedAt);
   document.querySelectorAll('[data-preset]').forEach((btn) => {

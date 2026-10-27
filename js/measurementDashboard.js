@@ -9,7 +9,9 @@ import {
   subscribe,
   takeSelectionOrigin,
 } from './state.js';
-import { $, formatMeasurement, formatNumber, parseMeasurement, scrollToId } from './utils.js';
+import { $, applyDisplayedEdit, formatMeasurement, formatNumber, scrollToId } from './utils.js';
+
+let shownEditorUnits = null;
 
 const GROUPS = ['overall', 'upper', 'torso', 'arms', 'lower'];
 
@@ -98,7 +100,11 @@ function renderEditor() {
   $('#editApply').hidden = heightLocked;
   $('#editReset').hidden = heightLocked || !item.manuallyEdited;
   $('#editProfileBtn').hidden = !heightLocked;
-  if (document.activeElement !== input) input.value = formatNumber(item.valueCm, state.profile.units);
+  const unitsChanged = shownEditorUnits !== state.profile.units;
+  if (unitsChanged || document.activeElement !== input) {
+    input.value = formatNumber(item.valueCm, state.profile.units);
+  }
+  shownEditorUnits = state.profile.units;
   const compare = $('#editCompare');
   compare.hidden = !item.manuallyEdited;
   compare.textContent = item.manuallyEdited
@@ -138,20 +144,25 @@ function setUnits(units) {
 function applyEdit() {
   const item = state.measurements.find((entry) => entry.key === state.selectedKey);
   if (!item || item.key === 'height') return;
-  const parsed = parseMeasurement($('#editValue').value, state.profile.units, item.key);
+  const result = applyDisplayedEdit(item, $('#editValue').value, state.profile.units);
   const error = $('#editError');
-  if (!parsed.ok) {
+  if (!result.ok) {
     error.hidden = false;
-    error.textContent = parsed.code === 'range'
+    error.textContent = result.code === 'range'
       ? t('editor.range', {
-        min: formatNumber(parsed.min, state.profile.units),
-        max: formatNumber(parsed.max, state.profile.units),
+        min: formatNumber(result.min, state.profile.units),
+        max: formatNumber(result.max, state.profile.units),
         unit: state.profile.units === 'in' ? t('common.in') : t('common.cm'),
       })
       : t('editor.invalid');
     return;
   }
-  setMeasurementValue(item.key, parsed.cm);
+  if (!result.changed) {
+    error.hidden = true;
+    $('#editValue').value = formatNumber(item.valueCm, state.profile.units);
+    return;
+  }
+  setMeasurementValue(item.key, result.item.valueCm);
 }
 
 export function initDashboard() {

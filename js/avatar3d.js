@@ -1,4 +1,4 @@
-import { KEY_TO_REGION, PRESET_SHAPES } from './config.js';
+import { PRESET_SHAPES, calloutValueKey, selectionHighlights } from './config.js';
 import { t } from './i18n.js';
 import { selectMeasurement, state, subscribe } from './state.js';
 import { $, formatMeasurement, prefersReducedMotion } from './utils.js';
@@ -103,6 +103,7 @@ export async function initAvatar() {
   let body = null;
   let pickers = [];
   let rings = [];
+  let guides = [];
   let anchors = {};
   let heightLine = null;
   let builtPreset = '';
@@ -118,6 +119,7 @@ export async function initAvatar() {
     body = null;
     pickers = [];
     rings = [];
+    guides = [];
     anchors = {};
     heightLine = null;
   }
@@ -188,8 +190,28 @@ export async function initAvatar() {
     addRing(0, 1.3, 0, 0.205 * shape.chest, 'chest', 'chest', flat);
     addRing(0, 1.08, 0, 0.16 * shape.waist, 'waist', 'waist', flat);
     addRing(0, 0.86, 0, 0.19 * shape.hip, 'hip', 'hip', flat);
-    addRing(0.28 * shape.shoulder, 1.24, 0, armR + 0.02, 'arm', 'sleeve', [Math.PI / 2, 0, 0.18]);
-    addRing(0.095 * shape.hip, 0.62, 0, 0.09 * shape.limb, 'leg', 'inseam', flat);
+    const addGuide = (x, y, z, length, region, key, rotation) => {
+      const geo = new THREE.CylinderGeometry(0.005, 0.005, length, 8);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x8aa399, emissive: 0x000000, roughness: 0.4, metalness: 0.12 });
+      track(geo, mat);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+      mesh.userData = { key, region };
+      group.add(mesh);
+      guides.push(mesh);
+      const pickGeo = new THREE.CylinderGeometry(0.03, 0.03, length, 8);
+      const pickMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+      track(pickGeo, pickMat);
+      const pick = new THREE.Mesh(pickGeo, pickMat);
+      pick.position.copy(mesh.position);
+      pick.rotation.copy(mesh.rotation);
+      pick.userData = { key, region };
+      group.add(pick);
+      pickers.push(pick);
+    };
+    addGuide(0.22 * shape.shoulder + 0.08, 1.16, 0.07, 0.58, 'arm', 'sleeve', [0, 0, 0.18]);
+    addGuide(0.04, 0.4, 0.08, 0.74, 'leg', 'inseam');
 
     const lineGeo = new THREE.CylinderGeometry(0.004, 0.004, 1.74, 8);
     const lineMat = new THREE.MeshBasicMaterial({ color: 0x0b6b5c });
@@ -219,28 +241,38 @@ export async function initAvatar() {
   }
 
   function applyHighlight() {
-    const region = KEY_TO_REGION[state.selectedKey] || 'chest';
-    for (const mesh of rings) {
-      const on = mesh.userData.region === region || (region === 'torso' && ['chest', 'waist', 'hip'].includes(mesh.userData.region));
+    for (const mesh of [...rings, ...guides]) {
+      const on = selectionHighlights(state.selectedKey, mesh.userData.key);
       mesh.material.color.set(on ? 0x0b6b5c : 0x8aa399);
       mesh.material.emissive.set(on ? 0x0b6b5c : 0x000000);
       mesh.material.emissiveIntensity = on ? 0.5 : 0;
     }
-    if (heightLine) heightLine.visible = region === 'overall';
+    if (heightLine) heightLine.visible = state.selectedKey === 'height';
     for (const item of ANNOS) {
       const btn = buttons[item.key];
-      const on = KEY_TO_REGION[item.key] === region;
+      const on = selectionHighlights(state.selectedKey, item.key);
+      const displayKey = calloutValueKey(state.selectedKey, item.key);
       btn.classList.toggle('is-selected', on);
       btn.setAttribute('aria-pressed', String(on));
-      const measure = state.measurements.find((entry) => entry.key === item.key);
-      btn.querySelector('.anno-name').textContent = t(`region.${item.region}`);
+      const measure = state.measurements.find((entry) => entry.key === displayKey);
+      btn.querySelector('.anno-name').textContent = displayKey === item.key ? t(`region.${item.region}`) : t(`measure.${displayKey}`);
       btn.querySelector('strong').textContent = measure ? formatMeasurement(measure.valueCm, state.profile.units) : '—';
     }
   }
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
+  const dragThreshold = 6;
+  let pressPoint = null;
+  canvas.addEventListener('pointerdown', (event) => {
+    pressPoint = { x: event.clientX, y: event.clientY };
+  });
   canvas.addEventListener('click', (event) => {
+    if (pressPoint) {
+      const moved = Math.hypot(event.clientX - pressPoint.x, event.clientY - pressPoint.y);
+      pressPoint = null;
+      if (moved > dragThreshold) return;
+    }
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -341,7 +373,7 @@ export async function initAvatar() {
   }
   function zoom(factor) {
     const offset = camera.position.clone().sub(controls.target);
-    offset.setLength(THREE.MathUtils.clamp(offset.length() * factor, 1.5, 5.2));
+    offset.setLength(THREE.MathUtils.clamp(offset.length() * factor, controls.minDistance, controls.maxDistance));
     camera.position.copy(controls.target).add(offset);
     controls.update();
     poke();
@@ -364,23 +396,56 @@ export async function initAvatar() {
     if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(0.9); }
     if (event.key === '-' || event.key === '_') { event.preventDefault(); zoom(1.1); }
   });
-  canvas.addEventListener('webglcontextlost', (event) => {
+  function onContextLost(event) {
     event.preventDefault();
     showFallback(t('viz.contextLost'));
     renderer.setAnimationLoop(null);
-  }, { once: true });
+    loopOn = false;
+  }
+  canvas.addEventListener('webglcontextlost', onContextLost);
+  canvas.addEventListener('webglcontextrestored', () => {
+    showFallback(t('viz.contextLost'));
+  });
 
-  const views = {
+  const baseTarget = new THREE.Vector3(0, 0.95, 0);
+  const baseViews = {
     front: new THREE.Vector3(0.15, 1.05, 3.2),
     back: new THREE.Vector3(0.15, 1.05, -3.2),
     left: new THREE.Vector3(-3.2, 1.05, 0.15),
     right: new THREE.Vector3(3.2, 1.05, 0.15),
   };
-  $('#camFront').addEventListener('click', () => flyTo(views.front));
-  $('#camBack').addEventListener('click', () => flyTo(views.back));
-  $('#camLeft').addEventListener('click', () => flyTo(views.left));
-  $('#camRight').addEventListener('click', () => flyTo(views.right));
-  $('#camReset').addEventListener('click', () => flyTo(views.front));
+  let framedFactor = 1;
+  function heightFactor() {
+    return state.profile.heightCm / 170;
+  }
+  function scaledView(base) {
+    return base.clone().sub(baseTarget).multiplyScalar(heightFactor()).add(controls.target);
+  }
+  function applyHeightFrame() {
+    const factor = heightFactor();
+    shadow.scale.setScalar(factor);
+    controls.minDistance = 1.5 * factor;
+    controls.maxDistance = 5.2 * factor;
+    const nextTarget = new THREE.Vector3(0, 0.95 * factor, 0);
+    if (Math.abs(factor - framedFactor) < 0.0001) {
+      controls.target.copy(nextTarget);
+      controls.update();
+      return;
+    }
+    const previousTarget = new THREE.Vector3(0, 0.95 * framedFactor, 0);
+    const offset = camera.position.clone().sub(previousTarget);
+    offset.multiplyScalar(factor / framedFactor);
+    offset.setLength(THREE.MathUtils.clamp(offset.length(), controls.minDistance, controls.maxDistance));
+    controls.target.copy(nextTarget);
+    camera.position.copy(controls.target).add(offset);
+    framedFactor = factor;
+    controls.update();
+  }
+  $('#camFront').addEventListener('click', () => flyTo(scaledView(baseViews.front)));
+  $('#camBack').addEventListener('click', () => flyTo(scaledView(baseViews.back)));
+  $('#camLeft').addEventListener('click', () => flyTo(scaledView(baseViews.left)));
+  $('#camRight').addEventListener('click', () => flyTo(scaledView(baseViews.right)));
+  $('#camReset').addEventListener('click', () => flyTo(scaledView(baseViews.front)));
   $('#zoomIn').addEventListener('click', () => zoom(0.88));
   $('#zoomOut').addEventListener('click', () => zoom(1.12));
 
@@ -404,6 +469,7 @@ export async function initAvatar() {
   function sync() {
     if (builtPreset !== state.profile.preset || !body) build(state.profile.preset);
     if (body) body.scale.setScalar(state.profile.heightCm / 170);
+    applyHeightFrame();
     syncTheme();
     applyHighlight();
     renderOnce();

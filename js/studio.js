@@ -2,7 +2,7 @@ import { PRESETS, SAMPLE_SRC } from './config.js';
 import { poseWarningText, t } from './i18n.js';
 import { readImageFile } from './imageValidation.js';
 import { runProcessing } from './processing.js';
-import { closePose, detectView, ensureLandmarker } from './poseDetection.js';
+import { closePose, detectView, ensureLandmarker, restoreCachedEngine } from './poseDetection.js';
 import {
   bothViewsReady,
   emptyCapture,
@@ -10,6 +10,7 @@ import {
   replaceCapture,
   resetSession,
   setBeforeReset,
+  setAfterReset,
   state,
   subscribe,
   updateDerivedMeasurements,
@@ -20,7 +21,7 @@ import {
   cmToFeetParts,
   feetInchesToCm,
   heightIsValid,
-  round1,
+  resolveHeightCm,
   sanitizeName,
   scrollToId,
   toast,
@@ -34,15 +35,17 @@ let shotUrl = null;
 let activeView = 'front';
 let devices = [];
 let deviceIndex = 0;
+let preferUserFacing = true;
+let openGeneration = 0;
+let acceptingShot = false;
 let detecting = false;
+let heightDirty = false;
+let feetUntouched = true;
+let draftCm = null;
 
 export function stopActiveCamera() {
-  if (stream) {
-    for (const track of stream.getTracks()) track.stop();
-    stream = null;
-  }
-  const video = $('#cameraVideo');
-  if (video) video.srcObject = null;
+  openGeneration += 1;
+  stopStreamOnly();
   discardShot();
 }
 
@@ -52,12 +55,39 @@ function discardShot() {
     URL.revokeObjectURL(shotUrl);
     shotUrl = null;
   }
+  const still = $('#cameraStill');
+  if (still) {
+    still.removeAttribute('src');
+    still.hidden = true;
+  }
+  const canvas = $('#cameraCanvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
+function clearHeightDraft() {
+  heightDirty = false;
+  feetUntouched = true;
+  draftCm = null;
+}
+
+function clearCaptureAlert() {
+  const alert = $('#captureAlert');
+  if (!alert) return;
+  alert.hidden = true;
+  alert.textContent = '';
 }
 
 export function loadSamplePair() {
   stopActiveCamera();
   const dialog = $('#cameraDialog');
   if (dialog?.open) dialog.close();
+  clearHeightDraft();
+  clearCaptureAlert();
   state.profile.heightCm = 170;
   state.profile.heightInput = 'cm';
   state.profile.preset = 'regular';
@@ -87,30 +117,88 @@ function sampleCapture(view) {
   };
 }
 
-function commitProfile(announce) {
-  state.profile.name = sanitizeName($('#displayName').value);
-  const mode = $('input[name="heightMode"]:checked')?.value === 'ft' ? 'ft' : 'cm';
-  state.profile.heightInput = mode;
-  let cm = null;
-  if (mode === 'cm') {
-    cm = round1(Number($('#heightCm').value));
+function readCmField() {
+  const raw = String($('#heightCm').value ?? '').trim();
+  if (!raw) return null;
+  const cm = Number(raw);
+  return Number.isFinite(cm) ? cm : null;
+}
+
+function onFeetEdited() {
+  heightDirty = true;
+  feetUntouched = false;
+  draftCm = null;
+  updateHeightHint();
+}
+
+function applyHeightMode(mode) {
+  if (mode === 'ft') {
+    const cm = readCmField();
+    if (cm != null) {
+      draftCm = cm;
+      const parts = cmToFeetParts(cm);
+      $('#heightFeet').value = String(parts.feet);
+      $('#heightInches').value = String(parts.inches);
+    }
+    feetUntouched = true;
+  } else if (feetUntouched && draftCm != null && Number.isFinite(Number(draftCm))) {
+    $('#heightCm').value = String(draftCm);
+  } else if (feetUntouched) {
+    $('#heightCm').value = String(state.profile.heightCm);
   } else {
     const feet = Number($('#heightFeet').value);
     const inches = Number($('#heightInches').value);
     if (Number.isFinite(feet) && Number.isFinite(inches) && inches >= 0 && inches < 12) {
-      cm = feetInchesToCm(feet, inches);
+      const cm = feetInchesToCm(feet, inches);
+      draftCm = cm;
+      $('#heightCm').value = String(cm);
+      feetUntouched = true;
     }
   }
+  state.profile.heightInput = mode;
+  updateHeightHint();
+}
+
+function markHeightInvalid(mode) {
+  const feetMode = mode === 'ft';
+  for (const [id, invalid] of [['heightCm', !feetMode], ['heightFeet', feetMode], ['heightInches', feetMode]]) {
+    const field = $('#' + id);
+    if (!field) continue;
+    if (invalid) field.setAttribute('aria-invalid', 'true');
+    else field.removeAttribute('aria-invalid');
+  }
+}
+
+function clearHeightInvalid() {
+  for (const id of ['heightCm', 'heightFeet', 'heightInches']) {
+    $('#' + id)?.removeAttribute('aria-invalid');
+  }
+}
+
+function commitProfile(announce) {
+  state.profile.name = sanitizeName($('#displayName').value);
+  const mode = $('input[name="heightMode"]:checked')?.value === 'ft' ? 'ft' : 'cm';
+  state.profile.heightInput = mode;
+  const cm = resolveHeightCm({
+    storedCm: state.profile.heightCm,
+    mode,
+    cmValue: $('#heightCm').value,
+    feet: $('#heightFeet').value,
+    inches: $('#heightInches').value,
+    feetUntouched: mode === 'ft' && feetUntouched,
+    draftCm: mode === 'ft' && feetUntouched ? (draftCm == null ? state.profile.heightCm : draftCm) : null,
+  });
   const error = $('#heightError');
   if (!heightIsValid(cm)) {
     error.hidden = false;
     error.textContent = t('profile.heightInvalid');
-    $('#heightCm').setAttribute('aria-invalid', 'true');
+    markHeightInvalid(mode);
     if (announce) toast(t('profile.heightInvalid'), 'error');
     return false;
   }
   error.hidden = true;
-  $('#heightCm').removeAttribute('aria-invalid');
+  clearHeightInvalid();
+  clearHeightDraft();
   state.profile.heightCm = cm;
   const preset = $('input[name="preset"]:checked')?.value || 'regular';
   state.profile.preset = PRESETS.includes(preset) ? preset : 'regular';
@@ -141,7 +229,7 @@ async function applyPhotoFile(view, file) {
   const result = await readImageFile(file);
   if (!result.ok) {
     toast(t(`validation.${result.code}`), 'error');
-    return;
+    return false;
   }
   replaceCapture(view, {
     kind: 'photo',
@@ -157,6 +245,7 @@ async function applyPhotoFile(view, file) {
   alert.hidden = true;
   emit();
   toast(t('toast.photoReady', { view: t(`capture.${view}`) }));
+  return true;
 }
 
 function clearView(view) {
@@ -167,6 +256,7 @@ function clearView(view) {
 
 function useSample(view) {
   replaceCapture(view, sampleCapture(view));
+  clearCaptureAlert();
   emit();
 }
 
@@ -204,12 +294,14 @@ function syncProfileForm() {
   const name = $('#displayName');
   if (document.activeElement !== name && name.value !== state.profile.name) name.value = state.profile.name;
   const cm = $('#heightCm');
-  if (document.activeElement !== cm) cm.value = String(state.profile.heightCm);
-  const parts = cmToFeetParts(state.profile.heightCm);
   const feet = $('#heightFeet');
   const inches = $('#heightInches');
-  if (document.activeElement !== feet) feet.value = String(parts.feet);
-  if (document.activeElement !== inches) inches.value = String(parts.inches);
+  if (!heightDirty) {
+    if (document.activeElement !== cm) cm.value = String(state.profile.heightCm);
+    const parts = cmToFeetParts(state.profile.heightCm);
+    if (document.activeElement !== feet) feet.value = String(parts.feet);
+    if (document.activeElement !== inches) inches.value = String(parts.inches);
+  }
   const mode = $(`input[name="heightMode"][value="${state.profile.heightInput === 'ft' ? 'ft' : 'cm'}"]`);
   if (mode) mode.checked = true;
   const preset = $(`input[name="preset"][value="${state.profile.preset}"]`);
@@ -227,9 +319,17 @@ function updateHeightHint() {
   if (mode === 'ft') {
     const feet = Number($('#heightFeet').value);
     const inches = Number($('#heightInches').value);
-    hint.textContent = Number.isFinite(feet) && Number.isFinite(inches) && inches >= 0 && inches < 12
-      ? `≈ ${feetInchesToCm(feet, inches).toFixed(1)} cm`
-      : '';
+    if (!(Number.isFinite(feet) && Number.isFinite(inches) && inches >= 0 && inches < 12)) {
+      hint.textContent = '';
+    } else if (feetUntouched) {
+      const base = draftCm != null && Number.isFinite(Number(draftCm)) ? Number(draftCm) : state.profile.heightCm;
+      const shown = cmToFeetParts(base);
+      hint.textContent = feet === shown.feet && inches === shown.inches
+        ? `≈ ${Number(base).toFixed(1)} cm`
+        : `≈ ${feetInchesToCm(feet, inches).toFixed(1)} cm`;
+    } else {
+      hint.textContent = `≈ ${feetInchesToCm(feet, inches).toFixed(1)} cm`;
+    }
   } else {
     const cm = Number($('#heightCm').value);
     if (heightIsValid(cm)) {
@@ -321,30 +421,71 @@ function showCameraError(message) {
   el.textContent = message || '';
 }
 
+function stopTracks(mediaStream) {
+  if (!mediaStream) return;
+  for (const track of mediaStream.getTracks()) track.stop();
+}
+
+function releaseStream(mediaStream) {
+  if (!mediaStream) return;
+  if (stream === mediaStream) stopStreamOnly();
+  else stopTracks(mediaStream);
+}
+
 async function openStream(deviceId) {
+  const generation = ++openGeneration;
   stopStreamOnly();
   const videoConstraints = deviceId
     ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 1600 } }
     : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1600 } };
-  let next;
+  let next = null;
   try {
     next = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
   } catch (error) {
-    if (error?.name === 'OverconstrainedError') {
+    if (generation !== openGeneration) return false;
+    if (error?.name !== 'OverconstrainedError') throw error;
+    try {
       next = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
-    } else throw error;
+    } catch (fallbackError) {
+      if (generation !== openGeneration) return false;
+      throw fallbackError;
+    }
+  }
+  if (generation !== openGeneration) {
+    stopTracks(next);
+    return false;
   }
   stream = next;
   const video = $('#cameraVideo');
   video.srcObject = stream;
-  await video.play();
+  try {
+    await video.play();
+  } catch (error) {
+    releaseStream(next);
+    if (generation !== openGeneration) return false;
+    throw error;
+  }
+  if (generation !== openGeneration) {
+    releaseStream(next);
+    return false;
+  }
   try {
     const all = await navigator.mediaDevices.enumerateDevices();
+    if (generation !== openGeneration) {
+      releaseStream(next);
+      return false;
+    }
     devices = all.filter((item) => item.kind === 'videoinput');
   } catch {
+    if (generation !== openGeneration) {
+      releaseStream(next);
+      return false;
+    }
     devices = [];
   }
-  $('#cameraSwitch').hidden = devices.length < 2;
+  const switchBtn = $('#cameraSwitch');
+  if (switchBtn) switchBtn.hidden = devices.length < 2;
+  return true;
 }
 
 function stopStreamOnly() {
@@ -375,8 +516,9 @@ async function startCamera() {
     return;
   }
   try {
-    const current = devices[deviceIndex];
-    await openStream(current?.deviceId);
+    const deviceId = preferUserFacing ? null : devices[deviceIndex]?.deviceId;
+    const opened = await openStream(deviceId);
+    if (!opened) return;
     showLive();
     $('#cameraShoot').disabled = false;
   } catch (error) {
@@ -389,6 +531,7 @@ async function startCamera() {
 function openCamera(view) {
   activeView = view;
   discardShot();
+  preferUserFacing = true;
   deviceIndex = 0;
   $('#cameraViewLabel').textContent = t(`capture.${view}`);
   $('#cameraPrivacy').hidden = false;
@@ -427,11 +570,19 @@ async function shoot() {
 }
 
 async function useShot() {
-  if (!shotBlob) return;
-  const file = new File([shotBlob], `${activeView}-capture.jpg`, { type: 'image/jpeg' });
-  discardShot();
-  $('#cameraDialog').close();
-  await applyPhotoFile(activeView, file);
+  if (!shotBlob || acceptingShot) return;
+  acceptingShot = true;
+  const useBtn = $('#cameraUse');
+  if (useBtn) useBtn.disabled = true;
+  try {
+    const file = new File([shotBlob], `${activeView}-capture.jpg`, { type: 'image/jpeg' });
+    const accepted = await applyPhotoFile(activeView, file);
+    if (!accepted) return;
+    $('#cameraDialog').close();
+  } finally {
+    acceptingShot = false;
+    if (useBtn) useBtn.disabled = false;
+  }
 }
 
 async function detectNow() {
@@ -440,15 +591,22 @@ async function detectNow() {
     toast(t('pose.sample'));
     return;
   }
+  const token = state.sessionToken;
   detecting = true;
   emit();
   try {
     await withTimeout(ensureLandmarker(), 12000);
-    for (const view of photos) await detectView(view);
+    if (state.sessionToken !== token) return;
+    for (const view of photos) {
+      if (state.sessionToken !== token) return;
+      await detectView(view);
+      if (state.sessionToken !== token) return;
+    }
     emit();
     toast(t('toast.landmarks'));
   } catch (error) {
-    if (error?.message === 'timeout') state.pose.engineCode = 'timeout';
+    if (state.sessionToken !== token) return;
+    if (error?.message === 'timeout' && state.pose.engine !== 'ready') state.pose.engineCode = 'timeout';
     emit();
     toast(t('process.poseFail'), 'error');
   } finally {
@@ -457,8 +615,20 @@ async function detectNow() {
   }
 }
 
+function sessionDirty() {
+  const profile = state.profile;
+  return Boolean(state.generatedAt)
+    || state.captures.front.kind !== 'empty'
+    || state.captures.side.kind !== 'empty'
+    || Boolean(profile.name)
+    || profile.heightCm !== 170
+    || profile.heightInput !== 'cm'
+    || profile.preset !== 'regular'
+    || profile.units !== 'cm';
+}
+
 async function confirmReset() {
-  const dirty = state.generatedAt || state.captures.front.kind !== 'empty' || state.captures.side.kind !== 'empty' || state.profile.name;
+  const dirty = sessionDirty();
   if (!dirty) {
     toast(t('toast.resetEmpty'));
     return;
@@ -477,21 +647,34 @@ async function confirmReset() {
 
 export function initStudio() {
   setBeforeReset(() => {
+    clearHeightDraft();
     stopActiveCamera();
     const dialog = $('#cameraDialog');
     if (dialog?.open) dialog.close();
+  });
+  setAfterReset(() => {
+    restoreCachedEngine();
+  });
+  $('#profileForm').addEventListener('submit', (event) => {
+    event.preventDefault();
+    commitProfile(true);
   });
   $('#displayName').addEventListener('input', () => {
     state.profile.name = sanitizeName($('#displayName').value);
     if (state.generatedAt) emit();
   });
   $$('input[name="heightMode"]').forEach((input) => input.addEventListener('change', () => {
-    state.profile.heightInput = input.value === 'ft' ? 'ft' : 'cm';
-    updateHeightHint();
+    if (!input.checked) return;
+    applyHeightMode(input.value === 'ft' ? 'ft' : 'cm');
   }));
-  ['heightCm', 'heightFeet', 'heightInches'].forEach((id) => {
-    $('#' + id).addEventListener('input', updateHeightHint);
+  $('#heightCm').addEventListener('input', () => {
+    heightDirty = true;
+    draftCm = readCmField();
+    feetUntouched = true;
+    updateHeightHint();
   });
+  $('#heightFeet').addEventListener('input', onFeetEdited);
+  $('#heightInches').addEventListener('input', onFeetEdited);
   $$('input[name="preset"]').forEach((input) => input.addEventListener('change', () => {
     if (!input.checked) return;
     state.profile.preset = input.value;
@@ -561,21 +744,24 @@ export function initStudio() {
   $('#cameraUse').addEventListener('click', () => useShot());
   $('#cameraSwitch').addEventListener('click', async () => {
     if (devices.length < 2) return;
+    preferUserFacing = false;
     deviceIndex = (deviceIndex + 1) % devices.length;
     try {
-      await openStream(devices[deviceIndex].deviceId);
-      showCameraError('');
+      const opened = await openStream(devices[deviceIndex].deviceId);
+      if (opened) showCameraError('');
     } catch (error) {
       showCameraError(cameraErrorText(error));
     }
   });
   $('#cameraClose').addEventListener('click', () => $('#cameraDialog').close());
   $('#cameraDialog').addEventListener('close', () => {
+    openGeneration += 1;
     stopStreamOnly();
     discardShot();
   });
   $$('.js-reset').forEach((btn) => btn.addEventListener('click', () => confirmReset()));
   window.addEventListener('pagehide', () => {
+    openGeneration += 1;
     stopStreamOnly();
     discardShot();
     closePose();

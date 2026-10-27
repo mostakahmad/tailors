@@ -130,6 +130,18 @@ export function drawLandmarks(canvas, landmarks) {
 let landmarker = null;
 let pending = null;
 
+function markEngineReady() {
+  if (state.pose.engine === 'ready' && state.pose.engineCode === 'ready') return;
+  state.pose.engine = 'ready';
+  state.pose.engineCode = 'ready';
+  emit();
+}
+
+/** True only when this detect still belongs to the same photo object URL. */
+export function captureStillCurrent(capture, token, objectUrl, sessionToken) {
+  return token === sessionToken && Boolean(objectUrl) && capture?.kind === 'photo' && capture.objectUrl === objectUrl;
+}
+
 function modelOptions(delegate) {
   return {
     baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate },
@@ -156,9 +168,7 @@ async function loadLandmarker() {
     } catch {
       landmarker = await vision.PoseLandmarker.createFromOptions(fileset, modelOptions('CPU'));
     }
-    state.pose.engine = 'ready';
-    state.pose.engineCode = 'ready';
-    emit();
+    markEngineReady();
     return landmarker;
   } catch (error) {
     landmarker = null;
@@ -169,8 +179,18 @@ async function loadLandmarker() {
   }
 }
 
+export function restoreCachedEngine() {
+  if (!landmarker) return false;
+  state.pose.engine = 'ready';
+  state.pose.engineCode = 'ready';
+  return true;
+}
+
 export function ensureLandmarker() {
-  if (landmarker) return Promise.resolve(landmarker);
+  if (landmarker) {
+    markEngineReady();
+    return Promise.resolve(landmarker);
+  }
   if (!pending) {
     pending = loadLandmarker().finally(() => {
       if (!landmarker) pending = null;
@@ -196,12 +216,16 @@ function loadHtmlImage(src) {
 
 export async function detectView(view) {
   const capture = state.captures[view];
-  if (capture.kind !== 'photo' || !capture.objectUrl) {
-    state.pose[view] = null;
+  const token = state.sessionToken;
+  const objectUrl = capture?.objectUrl;
+  if (capture?.kind !== 'photo' || !objectUrl) {
+    if (sessionStill(view, token, capture)) state.pose[view] = null;
     return null;
   }
   const detector = await ensureLandmarker();
-  const image = await loadHtmlImage(capture.objectUrl);
+  if (!stillThisPhoto(view, token, objectUrl)) return null;
+  const image = await loadHtmlImage(objectUrl);
+  if (!stillThisPhoto(view, token, objectUrl)) return null;
   const maxEdge = 1280;
   const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
   const canvas = document.createElement('canvas');
@@ -210,12 +234,22 @@ export async function detectView(view) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   const result = detector.detect(canvas);
+  if (!stillThisPhoto(view, token, objectUrl)) return null;
   const assessment = assessPose({
     landmarksList: result?.landmarks || [],
     view,
     width: image.naturalWidth,
     height: image.naturalHeight,
   });
+  if (!stillThisPhoto(view, token, objectUrl)) return null;
   state.pose[view] = assessment;
   return assessment;
+}
+
+function sessionStill(view, token, capture) {
+  return state.sessionToken === token && state.captures[view] === capture;
+}
+
+function stillThisPhoto(view, token, objectUrl) {
+  return captureStillCurrent(state.captures[view], token, objectUrl, state.sessionToken);
 }

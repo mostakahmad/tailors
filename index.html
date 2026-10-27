@@ -345,7 +345,7 @@
         <p class="eyebrow" data-i18n="dash.eyebrow">Measurement report</p>
         <div class="section-head">
           <h2 data-i18n="dash.title">Illustrative measurement dashboard</h2>
-          <p data-i18n="dash.lead">Eighteen demo values stay in sync with the diagram, mannequin, and export. Edited rows are marked.</p>
+          <p data-i18n="dash.lead">Eighteen demo values stay in sync with the diagram, mannequin, and export. The body shape is the illustrative preset. Edited rows are marked.</p>
         </div>
         <div id="dashboard" class="dash-layout">
           <div id="dashEmpty" class="empty-card">
@@ -402,7 +402,8 @@
             <span class="pill" data-i18n="badge.sim">Illustrative data</span>
           </header>
           <p class="disclaimer-exact">Concept Prototype — Measurements are illustrative and not suitable for tailoring.</p>
-          <p class="quiet">Do not use these values for garment cutting, sizing decisions, or medical purposes.</p>
+          <p id="reportNotice" class="quiet"></p>
+          <p id="reportPhotoSource" class="quiet">Photographs are not used to calculate these values</p>
           <dl class="report-meta">
             <div><dt data-i18n="report.name">Demo profile</dt><dd id="reportName"></dd></div>
             <div><dt data-i18n="report.height">Entered height</dt><dd id="reportHeight"></dd></div>
@@ -415,6 +416,7 @@
             <div><dt data-i18n="report.poseSide">Side landmarks</dt><dd id="reportPoseSide"></dd></div>
           </dl>
           <div id="reportFigure" class="report-figure"></div>
+          <div class="table-scroll">
           <table id="reportTable">
             <caption data-i18n="report.tableCaption">Illustrative measurements</caption>
             <thead><tr>
@@ -425,6 +427,7 @@
             </tr></thead>
             <tbody></tbody>
           </table>
+          </div>
           <div class="action-row report-actions">
             <button id="downloadCsv" class="tl-btn tl-btn-primary" type="button" disabled data-i18n="report.csv">Download CSV</button>
             <button id="downloadJson" class="tl-btn tl-btn-ghost" type="button" disabled data-i18n="report.json">Download JSON</button>
@@ -442,7 +445,7 @@
       <div class="brand"><span class="brand-mark" aria-hidden="true">T</span> TAILARS</div>
       <p class="disclaimer-exact">Concept Prototype — Measurements are illustrative and not suitable for tailoring.</p>
       <p data-i18n="footer.extra">Photos are processed in this browser only. They are not uploaded, not saved in site storage, and not included in exports. A public pose model may download from a CDN; images are not sent with that request.</p>
-      <p data-i18n="footer.privacy">Not for medical use or production cutting.</p>
+      <p data-i18n="warning.cutting">Do not use these values for garment cutting, sizing decisions, or medical purposes. Photographs are not tape measurements.</p>
       <p data-i18n="footer.tag">Body measurement experience · concept prototype</p>
     </div>
   </footer>

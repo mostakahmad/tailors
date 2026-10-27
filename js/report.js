@@ -17,11 +17,15 @@ function poseSummary(source, view) {
   };
 }
 
+const PHOTO_SOURCE_LINE = 'Photographs are not used to calculate these values';
+
 function poseLabel(summary) {
-  if (summary.status === 'detected') return t('pose.detected');
-  if (summary.status === 'skipped_sample') return t('pose.skipped');
-  if (summary.status === 'none') return t('pose.no_pose');
-  return t('pose.not_run');
+  let label = t('pose.not_run');
+  if (summary.status === 'detected') label = t('pose.detected');
+  else if (summary.status === 'skipped_sample') label = t('pose.skipped');
+  else if (summary.status === 'none') label = t('pose.no_pose');
+  const codes = summary.warnings || [];
+  return codes.length ? `${label} (${codes.join(', ')})` : label;
 }
 
 function sourceLabel(kind) {
@@ -66,7 +70,7 @@ export function toCsv(snapshot) {
     [snapshot.disclaimer],
     [snapshot.notice],
     ['Provider', snapshot.provider],
-    ['Photo analysis', 'Photographs are not used to calculate these values'],
+    ['Photo analysis', PHOTO_SOURCE_LINE],
     ['Landmark coordinates exported', 'No'],
     [],
     ['Profile name', snapshot.profileName],
@@ -115,7 +119,9 @@ function render() {
   const snapshot = createReportSnapshot();
   $('#reportName').textContent = snapshot.profileName;
   $('#reportWhen').textContent = new Date(snapshot.generatedAt).toLocaleString(state.lang === 'bn' ? 'bn-BD' : 'en-GB');
-  $('#reportHeight').textContent = `${snapshot.heightCm.toFixed(1)} cm`;
+  $('#reportNotice').textContent = t('warning.cutting');
+  $('#reportPhotoSource').textContent = PHOTO_SOURCE_LINE;
+  $('#reportHeight').textContent = formatMeasurement(snapshot.heightCm, snapshot.units);
   $('#reportPreset').textContent = t(`preset.${snapshot.preset}`);
   $('#reportUnits').textContent = snapshot.units === 'in' ? t('common.in') : t('common.cm');
   $('#reportFront').textContent = sourceLabel(snapshot.frontKind);

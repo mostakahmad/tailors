@@ -19,6 +19,30 @@ export function feetInchesToCm(feet, inches) {
   return round1((Number(feet) * 12 + Number(inches)) * 2.54);
 }
 
+/**
+ * Centimetres to store from the height form.
+ * An untouched feet/inches display keeps `draftCm` (the exact value it was copied from),
+ * so 170 cm shown as 5 ft 7 in does not commit as 170.2.
+ */
+export function resolveHeightCm({ storedCm, mode, cmValue, feet, inches, feetUntouched = false, draftCm = null }) {
+  if (mode === 'ft') {
+    const draft = draftCm == null || draftCm === '' ? NaN : Number(draftCm);
+    const base = feetUntouched && Number.isFinite(draft) ? draft : (feetUntouched ? storedCm : null);
+    if (base != null) {
+      const shown = cmToFeetParts(base);
+      if (Number(feet) === shown.feet && Number(inches) === shown.inches) return base;
+    }
+    const feetNum = Number(feet);
+    const inchNum = Number(inches);
+    if (Number.isFinite(feetNum) && Number.isFinite(inchNum) && inchNum >= 0 && inchNum < 12) {
+      return feetInchesToCm(feetNum, inchNum);
+    }
+    return null;
+  }
+  const cm = Number(cmValue);
+  return Number.isFinite(cm) ? round1(cm) : null;
+}
+
 export function cmToFeetParts(cm) {
   const total = cm / 2.54;
   let feet = Math.floor(total / 12);
@@ -51,6 +75,30 @@ export function parseMeasurement(raw, units, key) {
     return { ok: false, code: 'range', min: range?.[0] ?? null, max: range?.[1] ?? null };
   }
   return { ok: true, cm };
+}
+
+/** True when the parsed centimetres still display as the stored value in this unit. */
+export function measurementDisplayUnchanged(parsedCm, units, valueCm) {
+  return formatNumber(parsedCm, units) === formatNumber(valueCm, units);
+}
+
+/** Saving the value currently on screen. An unchanged display does not edit the row. */
+export function applyDisplayedEdit(item, raw, units) {
+  const parsed = parseMeasurement(raw, units, item?.key);
+  if (!parsed.ok) return { ok: false, code: parsed.code, min: parsed.min ?? null, max: parsed.max ?? null };
+  if (!item || item.key === 'height' || measurementDisplayUnchanged(parsed.cm, units, item.valueCm)) {
+    return { ok: true, changed: false, item };
+  }
+  return {
+    ok: true,
+    changed: true,
+    item: {
+      ...item,
+      valueCm: parsed.cm,
+      manuallyEdited: true,
+      source: 'manual_entry',
+    },
+  };
 }
 
 export function heightIsValid(cm) {

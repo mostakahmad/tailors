@@ -1,3 +1,4 @@
+import { CUTTING_WARNING } from './config.js';
 import { state, subscribe } from './state.js';
 
 const STR = {
@@ -149,7 +150,7 @@ const STR = {
     'viz.awaiting': 'Generate a measurement preview to attach demo values. You can still rotate the mannequin.',
     'dash.eyebrow': 'Measurement report',
     'dash.title': 'Illustrative measurement dashboard',
-    'dash.lead': 'Eighteen demo values stay in sync with the diagram, mannequin, and export. Edited rows are marked.',
+    'dash.lead': 'Eighteen demo values stay in sync with the diagram, mannequin, and export. The body shape is the illustrative preset. Edited rows are marked.',
     'dash.search': 'Search measurements',
     'dash.all': 'All',
     'dash.upper': 'Upper body',
@@ -197,7 +198,7 @@ const STR = {
     'report.colDemo': 'Demo value',
     'report.colSource': 'Source',
     'footer.extra': 'Photos are processed in this browser only. They are not uploaded, not saved in site storage, and not included in exports. A public pose model may download from a CDN; images are not sent with that request.',
-    'footer.privacy': 'Not for medical use or production cutting.',
+    'warning.cutting': CUTTING_WARNING,
     'footer.tag': 'Body measurement experience · concept prototype',
     'camera.title': 'Camera capture',
     'camera.privacy': 'The camera preview stays on this device. Tailars does not send frames to a server. You can close this and upload a photo instead. A pose model may download later from a public CDN; your frames are not part of that download.',
@@ -456,7 +457,7 @@ const STR = {
     'viz.awaiting': 'ডেমো মান যোগ করতে প্রিভিউ তৈরি করুন। ম্যানেকুইন এখনই ঘোরানো যাবে।',
     'dash.eyebrow': 'মাপের রিপোর্ট',
     'dash.title': 'উদাহরণ মাপের ড্যাশবোর্ড',
-    'dash.lead': 'আঠারোটি ডেমো মান ডায়াগ্রাম, ম্যানেকুইন ও এক্সপোর্টের সাথে মিলে। সম্পাদিত সারি চিহ্নিত থাকে।',
+    'dash.lead': 'আঠারোটি ডেমো মান ডায়াগ্রাম, ম্যানেকুইন ও এক্সপোর্টের সাথে মিলে। দেহের আকৃতি উদাহরণ প্রিসেট। সম্পাদিত সারি চিহ্নিত থাকে।',
     'dash.search': 'মাপ খুঁজুন',
     'dash.all': 'সব',
     'dash.upper': 'উপরের অংশ',
@@ -504,7 +505,7 @@ const STR = {
     'report.colDemo': 'ডেমো মান',
     'report.colSource': 'উৎস',
     'footer.extra': 'ছবি শুধু এই ব্রাউজারে প্রসেস হয়। আপলোড হয় না, সাইট স্টোরেজে সেভ হয় না, এবং এক্সপোর্টে থাকে না। পাবলিক পোজ মডেল CDN থেকে নামতে পারে; সেই অনুরোধের সাথে ছবি যায় না।',
-    'footer.privacy': 'চিকিৎসা বা উৎপাদন কাটিংয়ের জন্য নয়।',
+    'warning.cutting': 'পোশাক কাটিং, সাইজের সিদ্ধান্ত, বা চিকিৎসার জন্য এই মান ব্যবহার করবেন না। ছবি ফিতার মাপ নয়।',
     'footer.tag': 'বডি মেজারমেন্ট অভিজ্ঞতা · কনসেপ্ট প্রোটোটাইপ',
     'camera.title': 'ক্যামেরা ক্যাপচার',
     'camera.privacy': 'ক্যামেরার প্রিভিউ এই ডিভাইসেই থাকে। Tailars ফ্রেম সার্ভারে পাঠায় না। বন্ধ করে ছবি আপলোড করতে পারেন। পরে একটি পাবলিক CDN থেকে পোজ মডেল নামতে পারে; আপনার ফ্রেম সেই ডাউনলোডের অংশ নয়।',

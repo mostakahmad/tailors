@@ -154,3 +154,21 @@ export const CALLOUT_KEYS = [
   { key: 'sleeve', region: 'arm' },
   { key: 'inseam', region: 'leg' },
 ];
+
+const TORSO_CALLOUT_KEYS = ['chest', 'waist', 'hip'];
+
+/** A drawn guide or ring lights for its own key. Torso and back also light the chest, waist, and hip guides. */
+export function selectionHighlights(selectedKey, visualKey) {
+  if (selectedKey === visualKey) return true;
+  return KEY_TO_REGION[selectedKey] === 'torso' && TORSO_CALLOUT_KEYS.includes(visualKey);
+}
+
+/** Keys without a chip reuse the matching callout, but the number stays the selected key's. */
+export function calloutValueKey(selectedKey, calloutKey) {
+  if (!selectedKey || selectedKey === calloutKey) return calloutKey;
+  if (CALLOUT_KEYS.some((item) => item.key === selectedKey)) return calloutKey;
+  const region = KEY_TO_REGION[selectedKey];
+  if (region === 'torso' && TORSO_CALLOUT_KEYS.includes(calloutKey)) return selectedKey;
+  const host = CALLOUT_KEYS.find((item) => item.region === region);
+  return host?.key === calloutKey ? selectedKey : calloutKey;
+}

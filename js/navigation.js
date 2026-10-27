@@ -10,16 +10,43 @@ export function initNavigation() {
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', t('nav.menu'));
   };
+  const menuItems = () => [...panel.querySelectorAll('a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => !el.hidden && !el.disabled);
+  const menuIsPopup = () => panel.classList.contains('is-open') && getComputedStyle(toggle).display !== 'none';
   toggle.addEventListener('click', () => {
     const open = panel.classList.toggle('is-open');
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', t(open ? 'nav.menuClose' : 'nav.menu'));
+    if (open) menuItems()[0]?.focus();
   });
   panel.addEventListener('click', (event) => {
     if (event.target.closest('a')) closeMenu();
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeMenu();
+    if (!menuIsPopup()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu();
+      toggle.focus();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const items = menuItems();
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey) {
+      if (active === first || !panel.contains(active)) {
+        event.preventDefault();
+        last.focus();
+      }
+      return;
+    }
+    if (active === last || !panel.contains(active)) {
+      event.preventDefault();
+      first.focus();
+    }
   });
   $('#themeToggle').addEventListener('click', () => setTheme(state.theme === 'dark' ? 'light' : 'dark'));
   $('#langToggle').addEventListener('click', () => setLang(state.lang === 'bn' ? 'en' : 'bn'));

@@ -6,6 +6,7 @@ import { t } from './i18n.js';
 import { heightIsValid, scrollToId, toast, wait, withTimeout } from './utils.js';
 
 const STAGES = ['prepare', 'ready', 'pose', 'measure', 'visual', 'report'];
+let processingOwner = null;
 
 function stage(name, status) {
   document.querySelector(`[data-stage="${name}"]`)?.setAttribute('data-state', status);
@@ -16,8 +17,22 @@ function detail(message) {
   if (el) el.textContent = message;
 }
 
+function expired(token) {
+  if (state.sessionToken === token) return false;
+  if (processingOwner === token) {
+    processingOwner = null;
+    if (state.processing) {
+      state.processing = false;
+      emit();
+    }
+  }
+  return true;
+}
+
 export async function runProcessing() {
   if (state.processing) return false;
+  const token = state.sessionToken;
+  processingOwner = token;
   state.processing = true;
   state.processingError = false;
   STAGES.forEach((name) => stage(name, 'wait'));
@@ -27,6 +42,7 @@ export async function runProcessing() {
     stage('prepare', 'active');
     detail(t('process.prepare'));
     await wait(260);
+    if (expired(token)) return false;
     stage('prepare', 'done');
 
     stage('ready', 'active');
@@ -35,6 +51,7 @@ export async function runProcessing() {
       throw new Error('not-ready');
     }
     await wait(200);
+    if (expired(token)) return false;
     stage('ready', 'done');
 
     stage('pose', 'active');
@@ -50,19 +67,31 @@ export async function runProcessing() {
       if (poseNote) poseNote.textContent = '';
       try {
         await withTimeout(ensureLandmarker(), 12000);
-        for (const view of photos) await detectView(view);
+        if (expired(token)) return false;
+        for (const view of photos) {
+          await detectView(view);
+          if (expired(token)) return false;
+        }
         const detected = photos.some((view) => state.pose[view]?.status === 'detected');
-        stage('pose', 'done');
-        detail(detected ? t('process.poseOk') : t('pose.no_pose'));
+        if (detected) {
+          stage('pose', 'done');
+          detail(t('process.poseOk'));
+        } else {
+          stage('pose', 'warn');
+          detail(t('pose.no_pose'));
+        }
       } catch (error) {
+        if (expired(token)) return false;
         stage('pose', 'warn');
-        const poseMessage = error?.message === 'timeout' ? t('process.poseTimeout') : t('process.poseFail');
-        if (error?.message === 'timeout') state.pose.engineCode = 'timeout';
+        const timedOut = error?.message === 'timeout';
+        const poseMessage = timedOut ? t('process.poseTimeout') : t('process.poseFail');
+        if (timedOut && state.pose.engine !== 'ready') state.pose.engineCode = 'timeout';
         detail(poseMessage);
         if (poseNote) poseNote.textContent = poseMessage;
       }
     }
 
+    if (expired(token)) return false;
     stage('measure', 'active');
     detail(t('process.measure'));
     const result = await getProvider().analyze({
@@ -73,30 +102,38 @@ export async function runProcessing() {
         side: state.captures.side.kind,
       },
     });
-    state.measurements = mergeMeasurements(state.measurements, result.measurements);
+    if (expired(token)) return false;
+    const nextMeasurements = mergeMeasurements(state.measurements, result.measurements);
     await wait(220);
+    if (expired(token)) return false;
     stage('measure', 'done');
 
     stage('visual', 'active');
     detail(t('process.visual'));
     await wait(200);
+    if (expired(token)) return false;
     stage('visual', 'done');
 
     stage('report', 'active');
     detail(t('process.report'));
+    state.measurements = nextMeasurements;
     state.generatedAt = new Date().toISOString();
     state.processing = false;
     state.processingError = false;
+    processingOwner = null;
     await wait(140);
+    if (state.sessionToken !== token) return false;
     stage('report', 'done');
     emit();
     toast(t('toast.ready'));
     scrollToId('visualization');
     return true;
   } catch (error) {
+    if (expired(token)) return false;
     console.error('Preview failed', error?.message || 'error');
     state.processing = false;
     state.processingError = true;
+    processingOwner = null;
     detail(t('process.fail'));
     emit();
     return false;

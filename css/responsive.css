@@ -9,6 +9,10 @@
   .nav-link { padding: 12px; border-radius: 10px; }
   .header-bar { position: relative; }
   .hero-grid, .profile-layout, .viz-layout, .split, .steps { grid-template-columns: 1fr; }
+  .hero-art { padding: 8px 4px 12px; min-width: 0; }
+  .studio-card { max-width: 100%; }
+  .float-a { left: 12px; }
+  .float-b { right: 12px; }
   .section-head { display: block; }
   .choice-grid { grid-template-columns: 1fr 1fr; }
 }
