@@ -161,6 +161,20 @@ export function downloadBlob(filename, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
+function dismissToast(item) {
+  if (!item?.isConnected || item.classList.contains('is-leaving')) return;
+  if (prefersReducedMotion()) {
+    item.remove();
+    return;
+  }
+  item.classList.add('is-leaving');
+  const remove = () => {
+    if (item.isConnected) item.remove();
+  };
+  item.addEventListener('animationend', remove, { once: true });
+  setTimeout(remove, 400);
+}
+
 export function toast(message, type = 'info') {
   const region = document.getElementById('toasts');
   if (!region) return;
@@ -171,7 +185,7 @@ export function toast(message, type = 'info') {
   item.textContent = text;
   region.append(item);
   while (region.children.length > 3) region.firstElementChild.remove();
-  setTimeout(() => item.remove(), 4600);
+  setTimeout(() => dismissToast(item), prefersReducedMotion() ? 4600 : 4200);
 }
 
 let lastUnexpected = 0;
@@ -200,7 +214,7 @@ function reportUnexpected() {
     ? 'কিছু একটা আটকে গেছে। বাকি ডেমো চালু আছে — আবার চেষ্টা করুন।'
     : 'Something interrupted this step. The rest of the demo is still available.';
   region.append(item);
-  setTimeout(() => item.remove(), 4600);
+  setTimeout(() => dismissToast(item), prefersReducedMotion() ? 4600 : 4200);
 }
 
 export function fileStamp() {

@@ -51,6 +51,8 @@ The site is static. Paths are relative, so it works at `https://USERNAME.github.
 3. Branch `main`, folder `/ (root)`.
 4. Open `https://USERNAME.github.io/REPOSITORY-NAME/`.
 
+Share cards read `assets/og.png`. The tags in `index.html` point at `https://mostakahmad.github.io/tailors/assets/og.png`. If the site is published somewhere else, change `og:url` and the image URLs to that address. The preview says the measurements are illustrative.
+
 No server, database, API key, or paid service is required. Bootstrap CSS and the font files load from CDNs. Three.js is vendored. The pose model and MediaPipe runtime download only when landmark detection runs:
 
 - `@mediapipe/tasks-vision@0.10.21`
@@ -65,7 +67,7 @@ Do not commit real body photographs.
 - Photos stay in memory as object URLs and are revoked on remove, reset, and page hide.
 - The camera track stops when the dialog closes, the session resets, or the page is hidden/unloaded.
 - Exports contain measurements, preset, height, and pose status only — not pixels and not landmark coordinates.
-- Theme and language preferences may be saved in `localStorage`. Images are not.
+- Theme, language, and whether the first-visit guide was closed may be saved in `localStorage`. Images are not.
 
 ## Future measurement service
 

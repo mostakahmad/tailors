@@ -4,6 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="TAILARS concept prototype: a local body-scan studio with on-device pose landmarks and illustrative tailoring measurements. Not for garment cutting.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TAILARS">
+  <meta property="og:url" content="https://mostakahmad.github.io/tailors/">
+  <meta property="og:title" content="TAILARS | Body Measurement Studio">
+  <meta property="og:description" content="A concept prototype of a photo-guided fitting studio. Measurements are illustrative and not suitable for tailoring.">
+  <meta property="og:image" content="https://mostakahmad.github.io/tailors/assets/og.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="TAILARS body measurement studio, a concept prototype. Measurements are illustrative and not suitable for tailoring.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TAILARS | Body Measurement Studio">
+  <meta name="twitter:description" content="A concept prototype of a photo-guided fitting studio. Measurements are illustrative and not suitable for tailoring.">
+  <meta name="twitter:image" content="https://mostakahmad.github.io/tailors/assets/og.png">
+  <meta name="twitter:image:alt" content="TAILARS body measurement studio, a concept prototype. Measurements are illustrative and not suitable for tailoring.">
   <meta name="theme-color" content="#10242a">
   <title>TAILARS | Body Measurement Studio</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
@@ -13,6 +28,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/motion.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/print.css" media="print">
   <script>
@@ -264,6 +280,7 @@
           <ul id="qualityList" class="quality-list"></ul>
           <div id="processingPanel" class="processing-panel" hidden>
             <p id="processingDetail" role="status"></p>
+            <div class="process-bar" aria-hidden="true"><span></span></div>
             <ol id="processingList" class="process-list">
               <li data-stage="prepare" data-state="wait"><span data-i18n="process.prepare">Preparing images</span></li>
               <li data-stage="ready" data-state="wait"><span data-i18n="process.ready">Checking capture readiness</span></li>
@@ -479,6 +496,23 @@
       </div>
     </div>
     <canvas id="cameraCanvas" hidden></canvas>
+  </dialog>
+
+  <dialog id="guideDialog" class="guide-dialog" aria-labelledby="guideTitle">
+    <div class="dialog-body">
+      <p class="eyebrow" data-i18n="guide.eyebrow">First visit</p>
+      <h2 id="guideTitle" data-i18n="guide.title">Start with the sample body</h2>
+      <p data-i18n="guide.lead">No photo is required for a first look. This path stays on this device, and the measurements stay a labeled demo.</p>
+      <ol class="guide-steps">
+        <li data-i18n="guide.s1">Load the sample body. Front and side illustrations fill the studio.</li>
+        <li data-i18n="guide.s2">Press Generate Measurement Preview.</li>
+        <li data-i18n="guide.s3">Review the report and the 3D model. The values are not tape measurements.</li>
+      </ol>
+      <div class="action-row">
+        <button id="guideSample" class="tl-btn tl-btn-primary" type="button" data-i18n="hero.sample">Try with Sample Body</button>
+        <button id="guideDismiss" class="tl-btn tl-btn-ghost" type="button" data-i18n="guide.dismiss">Look around first</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="resetDialog" aria-labelledby="resetTitle">

@@ -1,5 +1,6 @@
 import { initAvatar } from './avatar3d.js';
 import { initDiagram } from './bodyDiagram.js';
+import { initGuide } from './guide.js';
 import { initI18n } from './i18n.js';
 import { initDashboard } from './measurementDashboard.js';
 import { initNavigation } from './navigation.js';
@@ -12,6 +13,7 @@ loadPreferences();
 initI18n();
 initNavigation();
 initStudio();
+initGuide();
 initDashboard();
 initDiagram();
 initReport();

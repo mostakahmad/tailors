@@ -12,6 +12,7 @@ import {
 import { $, applyDisplayedEdit, formatMeasurement, formatNumber, scrollToId } from './utils.js';
 
 let shownEditorUnits = null;
+let revealedAt = '';
 
 const GROUPS = ['overall', 'upper', 'torso', 'arms', 'lower'];
 
@@ -31,12 +32,15 @@ function renderList() {
   const noMatch = $('#dashNoMatch');
   if (!state.measurements.length) {
     host.replaceChildren();
+    revealedAt = '';
     empty.hidden = false;
     noMatch.hidden = true;
     $('#dashTools').hidden = true;
     $('#editor').hidden = true;
     return;
   }
+  const reveal = Boolean(state.generatedAt) && state.generatedAt !== revealedAt;
+  let revealIndex = 0;
   empty.hidden = true;
   $('#dashTools').hidden = false;
   $('#editor').hidden = false;
@@ -59,6 +63,11 @@ function renderList() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'measure-row';
+      if (reveal) {
+        btn.classList.add('is-reveal');
+        btn.style.setProperty('--i', String(revealIndex));
+        revealIndex += 1;
+      }
       if (item.key === state.selectedKey) btn.classList.add('is-selected');
       if (item.manuallyEdited) btn.classList.add('is-edited');
       btn.dataset.key = item.key;
@@ -83,6 +92,7 @@ function renderList() {
     frag.append(section);
   }
   host.replaceChildren(frag);
+  if (reveal) revealedAt = state.generatedAt;
   if (focusedKey) host.querySelector(`[data-key="${CSS.escape(focusedKey)}"]`)?.focus();
 }
 

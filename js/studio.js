@@ -22,6 +22,7 @@ import {
   feetInchesToCm,
   heightIsValid,
   resolveHeightCm,
+  prefersReducedMotion,
   sanitizeName,
   scrollToId,
   toast,
@@ -279,15 +280,40 @@ function render() {
   processingPanel.hidden = !state.processing && !state.generatedAt && !state.processingError;
   $('#processingRetry').hidden = !state.processingError;
   $('#generateBtn').disabled = state.processing || detecting || !bothViewsReady() || !heightOk;
+  $('#generateBtn').classList.toggle('is-busy', state.processing);
+  $('#generateBtn').setAttribute('aria-busy', String(state.processing));
   $('#toReviewBtn').disabled = !bothViewsReady();
   const hasPhoto = ['front', 'side'].some((view) => state.captures[view].kind === 'photo');
   $('#detectBtn').disabled = detecting || state.processing || !hasPhoto || state.pose.engine === 'loading';
   if (!state.processing && !state.generatedAt && !state.processingError) {
     $$('[data-stage]').forEach((item) => item.setAttribute('data-state', 'wait'));
     $('#processingDetail').textContent = '';
+    processingPanel.style.setProperty('--progress', '0');
   }
   const preview = $('#presetPreview');
-  if (preview) preview.style.setProperty('--bulk', String(BULK[state.profile.preset] || 1));
+  if (preview) setBulk(preview, BULK[state.profile.preset] || 1);
+}
+
+function setBulk(preview, next) {
+  const value = String(next);
+  if (preview.dataset.bulkTarget === value) return;
+  preview.dataset.bulkTarget = value;
+  const from = getComputedStyle(preview).getPropertyValue('--bulk').trim() || '1';
+  preview.style.setProperty('--bulk', from);
+  preview.getAnimations().forEach((anim) => anim.cancel());
+  if (prefersReducedMotion() || from === value) {
+    preview.style.setProperty('--bulk', value);
+    return;
+  }
+  const anim = preview.animate(
+    [{ '--bulk': from }, { '--bulk': value }],
+    { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' },
+  );
+  anim.addEventListener('finish', () => {
+    if (preview.dataset.bulkTarget !== value) return;
+    preview.style.setProperty('--bulk', value);
+    anim.cancel();
+  });
 }
 
 function syncProfileForm() {
@@ -339,6 +365,23 @@ function updateHeightHint() {
   }
 }
 
+function flashTile(view, cap) {
+  const tile = $(`#${view}Drop`);
+  if (!tile) return;
+  if (cap.kind !== 'photo' && cap.kind !== 'sample') {
+    delete tile.dataset.flashKey;
+    tile.classList.remove('is-ready');
+    return;
+  }
+  const signature = cap.kind === 'sample' ? `sample:${cap.src}` : `photo:${cap.objectUrl}`;
+  if (tile.dataset.flashKey === signature) return;
+  tile.dataset.flashKey = signature;
+  tile.classList.remove('is-ready');
+  if (prefersReducedMotion()) return;
+  void tile.offsetWidth;
+  tile.classList.add('is-ready');
+}
+
 function renderTile(view) {
   const cap = state.captures[view];
   const img = $(`#${view}Preview`);
@@ -357,6 +400,7 @@ function renderTile(view) {
   }
   badge.dataset.kind = cap.kind;
   badge.textContent = t(cap.kind === 'sample' ? 'badge.sample' : cap.kind === 'photo' ? 'badge.photo' : 'badge.empty');
+  flashTile(view, cap);
   $$(`[data-capture-action="remove"][data-view="${view}"]`).forEach((btn) => {
     btn.hidden = cap.kind === 'empty';
   });

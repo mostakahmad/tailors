@@ -1,0 +1,163 @@
+:root {
+  --dur-fast: 160ms;
+  --dur: 240ms;
+  --dur-slow: 420ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@property --bulk {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+#presetPreview {
+  --bulk: 1;
+}
+
+.stepper button {
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+[data-step-panel]:not([hidden]) {
+  animation: step-in var(--dur) var(--ease);
+}
+
+@keyframes tile-flash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+.capture-tile.is-ready {
+  animation: tile-flash var(--dur-slow) var(--ease);
+}
+
+.processing-panel { --progress: 0; }
+
+.process-bar {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.process-bar > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+  transition: transform var(--dur) var(--ease);
+}
+
+.process-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.process-list li > span { flex: 1; }
+
+.process-list li small { flex-basis: 100%; }
+
+@keyframes stage-pulse {
+  0%, 100% { background-color: var(--bg-elevated); }
+  50% { background-color: var(--accent-soft); }
+}
+
+.process-list li[data-state="active"] {
+  animation: stage-pulse 1.2s var(--ease) infinite;
+}
+
+@keyframes check-in {
+  from { opacity: 0; transform: rotate(-45deg) scale(0.4); }
+  to { opacity: 1; transform: rotate(-45deg) scale(1); }
+}
+
+.process-list li[data-state="done"]::after {
+  content: "";
+  width: 8px;
+  height: 5px;
+  margin-left: auto;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  animation: check-in var(--dur) var(--ease);
+}
+
+#generateBtn.is-busy::after {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+.toast { animation: toast-in var(--dur) var(--ease); }
+
+.toast.is-leaving { animation: toast-out var(--dur-fast) var(--ease) forwards; }
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+dialog[open] { animation: dialog-in var(--dur) var(--ease); }
+
+dialog[open]::backdrop { animation: backdrop-in var(--dur) var(--ease); }
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.measure-row.is-reveal {
+  animation: row-in var(--dur) var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.hero-art .float-card { animation: float-y 5.6s var(--ease) infinite; }
+
+.hero-art .float-b { animation-delay: -2.4s; }
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.live-dot::before { animation: live-pulse 1.8s var(--ease) infinite; }

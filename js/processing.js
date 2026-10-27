@@ -6,10 +6,18 @@ import { t } from './i18n.js';
 import { heightIsValid, scrollToId, toast, wait, withTimeout } from './utils.js';
 
 const STAGES = ['prepare', 'ready', 'pose', 'measure', 'visual', 'report'];
+const SETTLED = new Set(['done', 'skip', 'warn']);
 let processingOwner = null;
 
 function stage(name, status) {
   document.querySelector(`[data-stage="${name}"]`)?.setAttribute('data-state', status);
+  const items = document.querySelectorAll('[data-stage]');
+  if (!items.length) return;
+  let finished = 0;
+  items.forEach((item) => {
+    if (SETTLED.has(item.getAttribute('data-state'))) finished += 1;
+  });
+  document.getElementById('processingPanel')?.style.setProperty('--progress', String(finished / items.length));
 }
 
 function detail(message) {

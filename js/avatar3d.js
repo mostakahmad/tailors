@@ -107,9 +107,17 @@ export async function initAvatar() {
   let anchors = {};
   let heightLine = null;
   let builtPreset = '';
+  let targetPreset = '';
+  let shapeAnim = null;
+  let currentShape = { chest: 1, waist: 1, hip: 1, shoulder: 1, limb: 1 };
+  let shaped = [];
+  let torsoMesh = null;
+  let pulse = null;
+  let pulsedKey = state.selectedKey;
   const disposables = { geometries: [], materials: [] };
 
   function clearBody() {
+    shapeAnim = null;
     if (!body) return;
     scene.remove(body);
     for (const geometry of disposables.geometries) geometry.dispose();
@@ -122,6 +130,111 @@ export async function initAvatar() {
     guides = [];
     anchors = {};
     heightLine = null;
+    shaped = [];
+    torsoMesh = null;
+  }
+
+  function shapeOf(preset) {
+    const shape = PRESET_SHAPES[preset] || PRESET_SHAPES.regular;
+    return {
+      chest: shape.chest,
+      waist: shape.waist,
+      hip: shape.hip,
+      shoulder: shape.shoulder,
+      limb: shape.limb,
+    };
+  }
+
+  function lerpShape(from, to, k) {
+    return {
+      chest: from.chest + (to.chest - from.chest) * k,
+      waist: from.waist + (to.waist - from.waist) * k,
+      hip: from.hip + (to.hip - from.hip) * k,
+      shoulder: from.shoulder + (to.shoulder - from.shoulder) * k,
+      limb: from.limb + (to.limb - from.limb) * k,
+    };
+  }
+
+  function writeTorso(shape) {
+    if (!torsoMesh) return;
+    const next = new THREE.LatheGeometry([
+      new THREE.Vector2(0.105 * shape.hip, 0),
+      new THREE.Vector2(0.15 * shape.hip, 0.1),
+      new THREE.Vector2(0.12 * shape.waist, 0.28),
+      new THREE.Vector2(0.158 * shape.chest, 0.5),
+      new THREE.Vector2(0.125 * shape.chest, 0.6),
+      new THREE.Vector2(0.07, 0.7),
+    ], 28);
+    const dest = torsoMesh.geometry.attributes.position;
+    const src = next.attributes.position.array;
+    if (src.length === dest.array.length) {
+      dest.array.set(src);
+      dest.needsUpdate = true;
+      torsoMesh.geometry.computeVertexNormals();
+      torsoMesh.geometry.computeBoundingSphere();
+    }
+    next.dispose();
+  }
+
+  function applyShape(shape) {
+    currentShape = shape;
+    for (const part of shaped) {
+      const mesh = part.mesh;
+      if (part.kind === 'leg') {
+        mesh.scale.set(shape.limb, 1, shape.limb);
+        mesh.position.x = part.side * 0.095 * shape.hip;
+      } else if (part.kind === 'pelvis') {
+        mesh.scale.set(1.2 * shape.hip, 0.78 * shape.hip, 0.9 * shape.hip);
+      } else if (part.kind === 'shoulderBar') {
+        mesh.scale.set(1, shape.shoulder, 1);
+      } else if (part.kind === 'arm') {
+        mesh.scale.set(shape.limb, 1, shape.limb);
+        mesh.position.x = part.side * 0.22 * shape.shoulder;
+      } else if (part.kind === 'ring') {
+        mesh.scale.setScalar(shape[part.factor]);
+        part.pick.scale.setScalar(shape[part.factor]);
+      } else if (part.kind === 'sleeve') {
+        const x = 0.22 * shape.shoulder + 0.08;
+        mesh.position.x = x;
+        part.pick.position.x = x;
+      }
+    }
+    writeTorso(shape);
+  }
+
+  function startShape(preset) {
+    targetPreset = preset;
+    const to = shapeOf(preset);
+    if (prefersReducedMotion()) {
+      applyShape(to);
+      builtPreset = preset;
+      shapeAnim = null;
+      return;
+    }
+    shapeAnim = {
+      from: { ...currentShape },
+      to,
+      start: performance.now(),
+      dur: 420,
+      preset,
+    };
+    poke(36);
+  }
+
+  function selectionBoost() {
+    if (!pulse) return 1;
+    const k = (performance.now() - pulse.start) / pulse.dur;
+    if (k >= 1) return 1;
+    return 1 + Math.sin(k * Math.PI) * 0.85;
+  }
+
+  function paintMarkers(boost) {
+    for (const mesh of [...rings, ...guides]) {
+      const on = selectionHighlights(state.selectedKey, mesh.userData.key);
+      mesh.material.color.set(on ? 0x0b6b5c : 0x8aa399);
+      mesh.material.emissive.set(on ? 0x0b6b5c : 0x000000);
+      mesh.material.emissiveIntensity = on ? 0.5 * boost : 0;
+    }
   }
 
   function track(geometry, material) {
@@ -131,8 +244,8 @@ export async function initAvatar() {
 
   function build(preset) {
     clearBody();
-    const shape = PRESET_SHAPES[preset] || PRESET_SHAPES.regular;
     const group = new THREE.Group();
+    group.frustumCulled = false;
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd7e4de, roughness: 0.64, metalness: 0.04 });
     disposables.materials.push(bodyMat);
     const add = (geometry, x, y, z, rotation) => {
@@ -143,29 +256,31 @@ export async function initAvatar() {
       group.add(mesh);
       return mesh;
     };
-    const legRadius = 0.058 * shape.limb;
-    add(new THREE.CapsuleGeometry(legRadius, 0.62, 6, 16), -0.095 * shape.hip, 0.4, 0);
-    add(new THREE.CapsuleGeometry(legRadius, 0.62, 6, 16), 0.095 * shape.hip, 0.4, 0);
-    const pelvis = add(new THREE.SphereGeometry(0.125 * shape.hip, 24, 16), 0, 0.76, 0);
-    pelvis.scale.set(1.2, 0.78, 0.9);
+    const leftLeg = add(new THREE.CapsuleGeometry(0.058, 0.62, 6, 16), -0.095, 0.4, 0);
+    const rightLeg = add(new THREE.CapsuleGeometry(0.058, 0.62, 6, 16), 0.095, 0.4, 0);
+    shaped.push({ kind: 'leg', side: -1, mesh: leftLeg }, { kind: 'leg', side: 1, mesh: rightLeg });
+    const pelvis = add(new THREE.SphereGeometry(0.125, 24, 16), 0, 0.76, 0);
+    shaped.push({ kind: 'pelvis', mesh: pelvis });
     const torso = new THREE.LatheGeometry([
-      new THREE.Vector2(0.105 * shape.hip, 0),
-      new THREE.Vector2(0.15 * shape.hip, 0.1),
-      new THREE.Vector2(0.12 * shape.waist, 0.28),
-      new THREE.Vector2(0.158 * shape.chest, 0.5),
-      new THREE.Vector2(0.125 * shape.chest, 0.6),
+      new THREE.Vector2(0.105, 0),
+      new THREE.Vector2(0.15, 0.1),
+      new THREE.Vector2(0.12, 0.28),
+      new THREE.Vector2(0.158, 0.5),
+      new THREE.Vector2(0.125, 0.6),
       new THREE.Vector2(0.07, 0.7),
     ], 28);
-    add(torso, 0, 0.78, 0);
-    add(new THREE.CapsuleGeometry(0.055, 0.28 * shape.shoulder, 4, 12), 0, 1.48, 0, [0, 0, Math.PI / 2]);
-    const armR = 0.046 * shape.limb;
-    add(new THREE.CapsuleGeometry(armR, 0.52, 6, 16), -0.22 * shape.shoulder, 1.12, 0, [0, 0, -0.18]);
-    add(new THREE.CapsuleGeometry(armR, 0.52, 6, 16), 0.22 * shape.shoulder, 1.12, 0, [0, 0, 0.18]);
+    torsoMesh = add(torso, 0, 0.78, 0);
+    torsoMesh.frustumCulled = false;
+    const shoulderBar = add(new THREE.CapsuleGeometry(0.055, 0.28, 4, 12), 0, 1.48, 0, [0, 0, Math.PI / 2]);
+    shaped.push({ kind: 'shoulderBar', mesh: shoulderBar });
+    const leftArm = add(new THREE.CapsuleGeometry(0.046, 0.52, 6, 16), -0.22, 1.12, 0, [0, 0, -0.18]);
+    const rightArm = add(new THREE.CapsuleGeometry(0.046, 0.52, 6, 16), 0.22, 1.12, 0, [0, 0, 0.18]);
+    shaped.push({ kind: 'arm', side: -1, mesh: leftArm }, { kind: 'arm', side: 1, mesh: rightArm });
     add(new THREE.CylinderGeometry(0.046, 0.054, 0.11, 18), 0, 1.58, 0);
     const head = add(new THREE.SphereGeometry(0.105, 28, 18), 0, 1.72, 0);
     head.scale.set(0.96, 1.15, 1);
 
-    const addRing = (x, y, z, radius, region, key, rotation) => {
+    const addRing = (x, y, z, radius, factor, region, key, rotation) => {
       const geo = new THREE.TorusGeometry(radius, 0.008, 10, 40);
       const mat = new THREE.MeshStandardMaterial({ color: 0x8aa399, emissive: 0x000000, roughness: 0.4, metalness: 0.12 });
       track(geo, mat);
@@ -184,12 +299,13 @@ export async function initAvatar() {
       pick.userData = { key, region };
       group.add(pick);
       pickers.push(pick);
+      shaped.push({ kind: 'ring', factor, mesh, pick });
     };
     const flat = [Math.PI / 2, 0, 0];
-    addRing(0, 1.48, 0, 0.22 * shape.shoulder, 'shoulder', 'shoulder', flat);
-    addRing(0, 1.3, 0, 0.205 * shape.chest, 'chest', 'chest', flat);
-    addRing(0, 1.08, 0, 0.16 * shape.waist, 'waist', 'waist', flat);
-    addRing(0, 0.86, 0, 0.19 * shape.hip, 'hip', 'hip', flat);
+    addRing(0, 1.48, 0, 0.22, 'shoulder', 'shoulder', 'shoulder', flat);
+    addRing(0, 1.3, 0, 0.205, 'chest', 'chest', 'chest', flat);
+    addRing(0, 1.08, 0, 0.16, 'waist', 'waist', 'waist', flat);
+    addRing(0, 0.86, 0, 0.19, 'hip', 'hip', 'hip', flat);
     const addGuide = (x, y, z, length, region, key, rotation) => {
       const geo = new THREE.CylinderGeometry(0.005, 0.005, length, 8);
       const mat = new THREE.MeshStandardMaterial({ color: 0x8aa399, emissive: 0x000000, roughness: 0.4, metalness: 0.12 });
@@ -209,8 +325,10 @@ export async function initAvatar() {
       pick.userData = { key, region };
       group.add(pick);
       pickers.push(pick);
+      return { mesh, pick };
     };
-    addGuide(0.22 * shape.shoulder + 0.08, 1.16, 0.07, 0.58, 'arm', 'sleeve', [0, 0, 0.18]);
+    const sleeve = addGuide(0.3, 1.16, 0.07, 0.58, 'arm', 'sleeve', [0, 0, 0.18]);
+    shaped.push({ kind: 'sleeve', mesh: sleeve.mesh, pick: sleeve.pick });
     addGuide(0.04, 0.4, 0.08, 0.74, 'leg', 'inseam');
 
     const lineGeo = new THREE.CylinderGeometry(0.004, 0.004, 1.74, 8);
@@ -234,19 +352,24 @@ export async function initAvatar() {
     anchor('sleeve', 0.58, 1.18, 0);
     anchor('inseam', 0.42, 0.5, 0);
 
+    applyShape(shapeOf(preset));
     group.scale.setScalar(state.profile.heightCm / 170);
     scene.add(group);
     body = group;
     builtPreset = preset;
+    targetPreset = preset;
   }
 
   function applyHighlight() {
-    for (const mesh of [...rings, ...guides]) {
-      const on = selectionHighlights(state.selectedKey, mesh.userData.key);
-      mesh.material.color.set(on ? 0x0b6b5c : 0x8aa399);
-      mesh.material.emissive.set(on ? 0x0b6b5c : 0x000000);
-      mesh.material.emissiveIntensity = on ? 0.5 : 0;
+    if (pulsedKey !== state.selectedKey) {
+      pulsedKey = state.selectedKey;
+      if (prefersReducedMotion()) pulse = null;
+      else {
+        pulse = { start: performance.now(), dur: 420 };
+        poke(30);
+      }
     }
+    paintMarkers(selectionBoost());
     if (heightLine) heightLine.visible = state.selectedKey === 'height';
     for (const item of ANNOS) {
       const btn = buttons[item.key];
@@ -336,11 +459,27 @@ export async function initAvatar() {
       controls.target.set(0, 0.95, 0);
       if (k >= 1) anim = null;
     }
+    if (shapeAnim) {
+      const k = Math.min(1, (performance.now() - shapeAnim.start) / shapeAnim.dur);
+      const eased = k * k * (3 - 2 * k);
+      applyShape(lerpShape(shapeAnim.from, shapeAnim.to, eased));
+      if (k >= 1) {
+        builtPreset = shapeAnim.preset;
+        shapeAnim = null;
+      }
+    }
+    if (pulse) {
+      paintMarkers(selectionBoost());
+      if (performance.now() - pulse.start >= pulse.dur) {
+        pulse = null;
+        paintMarkers(1);
+      }
+    }
     controls.update();
     renderer.render(scene, camera);
     placeLabels();
     extra -= 1;
-    if (!interacting && !anim && extra <= 0) {
+    if (!interacting && !anim && !shapeAnim && !pulse && extra <= 0) {
       renderer.setAnimationLoop(null);
       loopOn = false;
     }
@@ -467,7 +606,8 @@ export async function initAvatar() {
     shadowMat.opacity = dark ? 0.35 : 0.12;
   }
   function sync() {
-    if (builtPreset !== state.profile.preset || !body) build(state.profile.preset);
+    if (!body) build(state.profile.preset);
+    else if (targetPreset !== state.profile.preset) startShape(state.profile.preset);
     if (body) body.scale.setScalar(state.profile.heightCm / 170);
     applyHeightFrame();
     syncTheme();

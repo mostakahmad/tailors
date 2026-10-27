@@ -11,9 +11,9 @@ Static prototype of a photo-guided fitting studio. One HTML page, vanilla ES mod
 - `three` → `vendor/three.module.js` (Three.js r0.170.0)
 - `three/addons/` → `vendor/addons/`
 
-`js/main.js` order: `loadPreferences`, `initI18n`, `initNavigation`, `initStudio`, `initDashboard`, `initDiagram`, `initReport`, `initGlobalErrors`, then `initAvatar()` (not awaited).
+`js/main.js` order: `loadPreferences`, `initI18n`, `initNavigation`, `initStudio`, `initGuide`, `initDashboard`, `initDiagram`, `initReport`, `initGlobalErrors`, then `initAvatar()` (not awaited). `initGuide` opens the first-visit dialog once. Choosing the sample loads the illustrations. Dismissing it, including Escape, only stores that the guide was seen.
 
-Bootstrap 5.3.3 CSS is linked for availability. Layout classes are our own (`tl-btn`, design tokens in `style.css`). The page still lays out if the Bootstrap CDN fails.
+Bootstrap 5.3.3 CSS is linked for availability. Layout classes are our own (`tl-btn`, design tokens in `style.css`). The page still lays out if the Bootstrap CDN fails. `css/motion.css` is presentation only: step changes, processing progress, toasts, dialogs, the profile silhouette, and the mannequin preset morph. It does not change measurement values. `prefers-reduced-motion` disables it.
 
 ## One state object
 
@@ -28,7 +28,7 @@ Stored only in memory for a tab session:
 - `generatedAt`, `selectedKey`, `step` (1–3)
 - `sessionToken` increments on reset and when a capture is replaced. In-flight preview and pose detection compare it after every await and skip pose results, measurements, and `generatedAt` when it has changed. Replacing a photo also requires the same object URL before landmarks are stored.
 
-`localStorage` keys are only `tailars-theme` and `tailars-lang`. Photos, landmarks, and measurements are not written to `localStorage`, `sessionStorage`, or IndexedDB. Object URLs are revoked on replace, reset, and `pagehide`.
+`localStorage` keys are only `tailars-theme`, `tailars-lang`, and `tailars-guide` (`seen` after the first-visit dialog closes). Photos, landmarks, and measurements are not written to `localStorage`, `sessionStorage`, or IndexedDB. Object URLs are revoked on replace, reset, and `pagehide`.
 
 ## Measurement object
 
@@ -72,6 +72,7 @@ Allowed `source` values: `illustrative_demo`, `manual_entry`, and `verified_exte
 | `js/avatar3d.js` | Procedural mannequin, OrbitControls, measurement markers |
 | `js/report.js` | On-screen sheet, CSV, JSON, print snapshot |
 | `js/navigation.js` | Menu, theme, language, preset shortcut buttons |
+| `js/guide.js` | First-visit sample path. Stores only that the dialog was seen |
 
 ## Real versus simulated
 

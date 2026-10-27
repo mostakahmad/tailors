@@ -175,6 +175,35 @@ These strings stay English even in Bangla mode: that disclaimer, the button `Gen
   - camera dialog usable at 360px width
 - Verified: 2026-10-27. Chrome on `http://127.0.0.1:8000/`. Sample body then Generate Measurement Preview: 18 dashboard rows and 18 report rows, chest 94.0 cm, height 170.0 cm, profile 170 cm regular. Inches: neck showed 14.6 in; saving that display left `valueCm` 37, `manuallyEdited` false, and `illustrative_demo`. The neck row was selected and the shoulder chip was not; the shoulder callout showed the neck name and 14.6 in. A generated 640×800 blank PNG (no person) loaded the pose model, found no body, and the quality line read ready. Reset through the confirm dialog cleared the session and the same line stayed “ল্যান্ডমার্ক মডেল এই ডিভাইসে প্রস্তুত” because the cached landmarker was still open. At 360×640 the camera dialog opened from the photo step, stayed inside the viewport (top 37, bottom 603, overflow auto), and the capture button sat inside it (top 541–585) while the page stayed 360px wide. The automated browser granted a camera stream (1280px video); no still was captured and no person photograph was stored.
 
+## Phase 6 — Motion
+
+Presentation only. Measurement values, the disclaimer, and the simulated-versus-real boundary stay as they are.
+
+### P6-motion
+
+- Status: `done`
+- Files: `css/motion.css`, `index.html`, `js/studio.js`, `js/processing.js`, `js/utils.js`, `js/measurementDashboard.js`, `js/avatar3d.js`
+- Done when: step panels ease in, the profile silhouette eases between presets, capture tiles flash once, the processing list shows a progress bar and a check on finished stages, the generate button shows a spinner while busy, toasts and dialogs animate in, new report rows stagger once, and the mannequin lerps preset scale. `prefers-reduced-motion` removes the motion. Search and filters do not replay the row stagger.
+- Verified: 2026-10-27. Chrome on `http://127.0.0.1:8000/`. Sample body then Generate Measurement Preview: 18 rows, chest 94.0 cm, progress `1`, pose stage `skip`. The generate label stayed `Generate Measurement Preview` and the ribbon disclaimer was unchanged. Filtering to arms showed 4 rows and 0 reveal animations. Athletic preset moved the silhouette through `--bulk` 1.07 toward 1.08 without a page error; the WebGL canvas stayed up. A later full preset with reduced motion set `--bulk` to 1.22 immediately and the hero float animation computed to `none`. The sample toast used `toast-in`. The reset dialog used `dialog-in` and `backdrop-in`. At 360×640 the camera dialog sat inside the viewport (top 157, bottom 499, left 22, right 338). Print with a report hid the section heading and showed the sheet. After confirm-reset, print showed one line, “প্রিভিউর জন্য রিপোর্ট অপেক্ষা করছে”, and hid the extra paragraph.
+
+## Phase 7 — First visit
+
+### P7-guide
+
+- Status: `done`
+- Files: `js/guide.js`, `js/main.js`, `js/i18n.js`, `index.html`, `css/components.css`
+- Done when: the first visit opens a dialog that names the sample path, `Generate Measurement Preview`, and that the values are not tape measurements. The sample button loads both illustrations and lands on review. Dismiss and Escape store only `tailars-guide=seen` and do not load a sample. A later visit does not open the dialog. The English button name stays English in Bangla.
+- Verified: 2026-10-27. Chrome on `http://127.0.0.1:8000/`. Bangla first visit showed the three steps, including `Generate Measurement Preview`. English mode used the same button name. At 360×640 the dialog sat inside the viewport (top 71, bottom 570). Dismiss stored `seen` and left the review step empty. The next load did not open the dialog. After clearing the flag, the sample button loaded both illustrations, closed the dialog, and showed the review step.
+
+## Phase 8 — Share preview
+
+### P8-og
+
+- Status: `done`
+- Files: `assets/og.png`, `index.html`, `README.md`
+- Done when: the page has Open Graph and Twitter card tags, and `assets/og.png` is a 1200×630 card that names TAILARS and keeps the illustrative disclaimer. Image URLs are absolute for `https://mostakahmad.github.io/tailors/`.
+- Verified: 2026-10-27. The PNG is 1200×630. The card reads TAILARS, Body Measurement Studio, and the exact disclaimer sentence. Front and side sample figures are labeled, and the height chip does not cover them.
+
 ## Verification log
 
 Add a row when a phase is checked. Do not invent a pass.
@@ -189,3 +218,6 @@ Add a row when a phase is checked. Do not invent a pass.
 | 2026-10-27 | Phase 3 report and print | Chrome print media on `http://127.0.0.1:8000/` | The sheet shows the full cutting warning, photo-source line, active-unit height, and pose warning codes. An empty print shows one readable line and hides the section heading. A dark-theme diagram prints with a light fill and dark strokes. |
 | 2026-10-27 | Phase 4 viewer and small screens | Chrome on `http://127.0.0.1:8000/` | Avatar drag, context loss, and height framing were checked earlier. Layout at 360px, 768–1100px, and the open menu were checked earlier. Bangla mode now shows the full cutting warning on the sheet and in the footer; English mode shows the exact `CUTTING_WARNING`. The disclaimer has no `data-i18n`. |
 | 2026-10-27 | Phase 5 tests | `node --test tests/` and Chrome on `http://127.0.0.1:8000/` | 11 passed, 0 failed. Sample report had 18 rows and chest 94.0 cm. Saving the displayed 14.6 in neck left 37 cm unedited and selected only the neck row. A blank 640×800 PNG loaded the pose model with no body; after confirm-reset the quality line stayed ready. At 360×640 the camera dialog and its capture button stayed inside the viewport. No person photograph was stored. The automated browser did open a camera stream; a still was not captured. |
+| 2026-10-27 | Phase 6 motion | `node --test tests/` and Chrome on `http://127.0.0.1:8000/` | 11 passed, 0 failed. Sample report had 18 rows, chest 94.0 cm, and progress 1. Arms filter did not replay the row entrance. The silhouette eased between presets; reduced motion snapped it and stopped the hero float. Toast and reset dialog animated. At 360×640 the camera dialog stayed inside the viewport. Empty print showed one line. |
+| 2026-10-27 | Phase 7 first visit | Chrome on `http://127.0.0.1:8000/` | The first-visit dialog named the sample path and kept `Generate Measurement Preview` in English and Bangla. At 360×640 it stayed inside the viewport. Dismiss stored only `tailars-guide=seen` and did not load a sample. The next load stayed closed. The sample button then loaded both illustrations and opened review. |
+| 2026-10-27 | Phase 8 share preview | `assets/og.png` and `index.html` | The card is 1200×630 and includes TAILARS, Body Measurement Studio, and the exact disclaimer. Open Graph and Twitter tags point at `https://mostakahmad.github.io/tailors/assets/og.png`. |
