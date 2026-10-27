@@ -71,8 +71,15 @@ Do not commit real body photographs.
 
 `js/measurementProvider.js` defines `MeasurementProvider.analyze(input)`. `IllustrativeMeasurementProvider` is the working demo. A validated provider can return the same measurement objects with `source: "verified_external_provider"`. This prototype does not call a measurement API and does not ship credentials.
 
+## Continue the work from any clone
+
+Product and deployment notes are in this file. System design is in `docs/ARCHITECTURE.md`. Unfinished work is only in `docs/TRACKER.md`. Update the tracker in the same commit as the code. No local chat history is required.
+
 ## Layout
 
+- `docs/README.md` — where to start on a new machine
+- `docs/ARCHITECTURE.md` — state, modules, real versus simulated behavior
+- `docs/TRACKER.md` — ordered work queue and verification log
 - `index.html` — studio page
 - `style.css`, `css/components.css`, `css/responsive.css`, `css/print.css`
 - `js/` — state, capture studio, pose detection, demo measurements, 2D diagram, Three.js avatar, report
